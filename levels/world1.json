@@ -1,6 +1,7 @@
 {
   "world_id": 1,
   "name": "Solar System - Alpha Centauri",
+  "difficulty": "EASY",
   "story": "The outer beacon grid has gone dark. Reconnect the core navigation array using minimum energy.",
   "energy_budget": 20,
   "stars": [

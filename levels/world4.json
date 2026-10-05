@@ -1,0 +1,20 @@
+{
+  "world_id": 4,
+  "name": "Pleiades Cluster - Seven Sisters",
+  "difficulty": "MEDIUM",
+  "story": "A drifting cluster is losing power. Use the luminous power star and energy star to restore an efficient network.",
+  "energy_budget": 24,
+  "stars": [
+    {"id": 0, "name": "Maia", "x": 190, "y": 270, "type": "NORMAL"},
+    {"id": 1, "name": "Electra", "x": 370, "y": 180, "type": "POWER"},
+    {"id": 2, "name": "Taygeta", "x": 600, "y": 190, "type": "NORMAL"},
+    {"id": 3, "name": "Celaeno", "x": 800, "y": 300, "type": "UNSTABLE"},
+    {"id": 4, "name": "Alcyone", "x": 650, "y": 470, "type": "ENERGY"},
+    {"id": 5, "name": "Merope", "x": 400, "y": 510, "type": "NORMAL"},
+    {"id": 6, "name": "Asterope", "x": 210, "y": 440, "type": "NORMAL"}
+  ],
+  "edges": [
+    [0, 1, 4], [1, 2, 5], [2, 3, 5], [3, 4, 4], [4, 5, 3], [5, 6, 4], [6, 0, 5],
+    [0, 5, 7], [1, 5, 4], [2, 4, 6], [1, 6, 5], [3, 5, 7]
+  ]
+}

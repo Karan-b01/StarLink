@@ -1,6 +1,7 @@
 {
   "world_id": 3,
   "name": "Cygnus X-1 - Event Horizon",
+  "difficulty": "MEDIUM",
   "story": "Gravitational tides distort space-time. Unstable stars will collapse links that remain incomplete too long.",
   "energy_budget": 25,
   "stars": [

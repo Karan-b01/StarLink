@@ -43,6 +43,7 @@ def load_level_from_json(filepath):
         "world_id": data.get("world_id", 1),
         "name": data.get("name", "Unknown Sector"),
         "story": data.get("story", ""),
+        "difficulty": data.get("difficulty", "MEDIUM"),
         "energy_budget": data["energy_budget"],
         "stars": stars,
         "edges": edges

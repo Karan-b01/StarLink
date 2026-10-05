@@ -11,6 +11,7 @@ class GameState:
         self.world_id = level_data["world_id"]
         self.name = level_data["name"]
         self.story = level_data["story"]
+        self.difficulty = level_data.get("difficulty", "MEDIUM")
         self.stars = {s.id: s for s in level_data["stars"]}
         self.star_list = level_data["stars"]
         self.edges = level_data["edges"]
@@ -25,12 +26,18 @@ class GameState:
         
         # Precompute Kruskal's MST baseline
         vertex_ids = list(self.stars.keys())
-        self.mst_edges, self.optimal_cost, self.solver_history = kruskal_mst(vertex_ids, self.edges)
+        effective_edges = [
+            (u, v, self.compute_edge_cost(u, v, weight))
+            for u, v, weight in self.edges
+        ]
+        self.mst_edges, self.optimal_cost, self.solver_history = kruskal_mst(vertex_ids, effective_edges)
         
         # Status / Feedback
         self.status_message = "Select stars or edges to restore the constellation."
+        self.notification_message = None
         self.cycle_edge_flash = None  # Holds edge to flash red on cycle rejection
         self.is_completed = False
+        self.is_failed = False
         self.earned_stars = 0
 
     def compute_edge_cost(self, u, v, base_cost):
@@ -89,17 +96,53 @@ class GameState:
 
         # 7. Unstable Star countdown logic
         if self.stars[u].type == "UNSTABLE" or self.stars[v].type == "UNSTABLE":
-            self.decay_counters[(u, v)] = 3  # 3 turns to finish level
+            # This move creates the link, so give it three *future* successful
+            # connections before it collapses. _tick_decay() runs below for
+            # the current move as well, hence the extra count here.
+            self.decay_counters[(u, v)] = 4
+            self.notification_message = (
+                f"Unstable link: {self.stars[u].name} - {self.stars[v].name} "
+                "will collapse after 3 more connections."
+            )
 
         self._tick_decay()
         self._check_victory()
         return True, "Success"
+
+    def can_still_complete(self):
+        """Return whether an affordable edge can still join two components."""
+        if self.is_completed or self.is_failed:
+            return False
+        uf = UnionFind(list(self.stars.keys()))
+        for u, v, _ in self.selected_edges:
+            uf.union(u, v)
+        for u, v, base_cost in self.edges:
+            a, b = min(u, v), max(u, v)
+            if any(e[0] == a and e[1] == b for e in self.selected_edges):
+                continue
+            if uf.find(u) != uf.find(v) and self.compute_edge_cost(u, v, base_cost) <= self.energy:
+                return True
+        return False
+
+    def check_failure(self):
+        """Lock the level once no remaining affordable link can join components."""
+        if not self.is_completed and not self.is_failed and not self.can_still_complete():
+            self.is_failed = True
+            self.status_message = "Signal lost. Not enough energy to restore the constellation."
+            return True
+        return False
 
     def _tick_decay(self):
         """Decrements turns on unstable edges and removes expired links."""
         expired = []
         for edge in list(self.decay_counters.keys()):
             self.decay_counters[edge] -= 1
+            if self.decay_counters[edge] == 1:
+                u, v = edge
+                self.notification_message = (
+                    f"Warning: {self.stars[u].name} - {self.stars[v].name} "
+                    "collapses after your next connection!"
+                )
             if self.decay_counters[edge] <= 0:
                 expired.append(edge)
 
@@ -107,6 +150,9 @@ class GameState:
             del self.decay_counters[edge]
             self.selected_edges = [e for e in self.selected_edges if not (e[0] == edge[0] and e[1] == edge[1])]
             self.status_message = f"An unstable connection ({edge[0]}-{edge[1]}) collapsed!"
+            self.notification_message = (
+                f"Link collapsed: {self.stars[edge[0]].name} - {self.stars[edge[1]].name}."
+            )
 
     def _check_victory(self):
         """Uses BFS to check if the full graph is spanning and connected."""
@@ -116,13 +162,17 @@ class GameState:
             player_cost = sum(c for _, _, c in self.selected_edges)
             diff = player_cost - self.optimal_cost
 
-            # 3-star rating rubric
+            # Five-star rating based on added cost over the effective-cost MST.
             if diff <= 0:
-                self.earned_stars = 3  # Perfect MST match
+                self.earned_stars = 5
+            elif diff <= 2:
+                self.earned_stars = 4
             elif diff <= 4:
-                self.earned_stars = 2  # Good efficiency
+                self.earned_stars = 3
+            elif diff <= 6:
+                self.earned_stars = 2
             else:
-                self.earned_stars = 1  # Completed with extra energy
+                self.earned_stars = 1
 
             self.status_message = (
                 f"Constellation Restored! Rating: {'★' * self.earned_stars} "

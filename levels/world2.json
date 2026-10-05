@@ -1,22 +1,27 @@
 {
-  "world_id": 1,
-  "name": "Solar System - Alpha Centauri",
-  "story": "The outer beacon grid has gone dark. Reconnect the core navigation array using minimum energy.",
-  "energy_budget": 20,
+  "world_id": 2,
+  "name": "Orion Nebula - Star Nursery",
+  "difficulty": "EASY",
+  "story": "A newborn constellation is forming inside the nebula. Connect each beacon before its energy reserve runs low.",
+  "energy_budget": 27,
   "stars": [
-    {"id": 0, "name": "Sol", "x": 200, "y": 300, "type": "NORMAL"},
-    {"id": 1, "name": "Sirius", "x": 420, "y": 180, "type": "NORMAL"},
-    {"id": 2, "name": "Vega", "x": 680, "y": 240, "type": "NORMAL"},
-    {"id": 3, "name": "Rigel", "x": 320, "y": 500, "type": "NORMAL"},
-    {"id": 4, "name": "Betelgeuse", "x": 590, "y": 520, "type": "NORMAL"}
+    {"id": 0, "name": "Alnitak", "x": 180, "y": 300, "type": "NORMAL"},
+    {"id": 1, "name": "Alnilam", "x": 390, "y": 180, "type": "POWER"},
+    {"id": 2, "name": "Mintaka", "x": 650, "y": 230, "type": "NORMAL"},
+    {"id": 3, "name": "Saiph", "x": 270, "y": 500, "type": "NORMAL"},
+    {"id": 4, "name": "Bellatrix", "x": 590, "y": 500, "type": "ENERGY"},
+    {"id": 5, "name": "Meissa", "x": 820, "y": 350, "type": "NORMAL"}
   ],
   "edges": [
     [0, 1, 4],
     [1, 2, 5],
-    [0, 3, 6],
+    [0, 3, 5],
     [1, 3, 3],
-    [1, 4, 7],
-    [2, 4, 4],
-    [3, 4, 2]
+    [1, 4, 6],
+    [2, 4, 5],
+    [2, 5, 4],
+    [4, 5, 3],
+    [3, 4, 4],
+    [0, 4, 8]
   ]
 }

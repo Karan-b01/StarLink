@@ -61,3 +61,24 @@ def prims_mst(vertices, adj_list, start_vertex=None):
                 heapq.heappush(heap, (next_w, v, neighbor))
 
     return mst, total_cost
+def kruskal_steps(vertices, edges):
+    """
+    Generator that yields each edge inspection step of Kruskal's algorithm.
+    Yields: (u, v, weight, accepted: bool, reason: str)
+    """
+    from dsa.union_find import UnionFind
+    sorted_edges = sorted(edges, key=lambda x: x[2])
+    uf = UnionFind(vertices)
+    edges_accepted = 0
+    target_edges = len(vertices) - 1
+
+    for u, v, weight in sorted_edges:
+        if edges_accepted >= target_edges:
+            break
+
+        if not uf.connected(u, v):
+            uf.union(u, v)
+            edges_accepted += 1
+            yield (u, v, weight, True, "Minimum non-cyclic corridor")
+        else:
+            yield (u, v, weight, False, "Forms cycle (Union-Find rejected)")

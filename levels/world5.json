@@ -1,0 +1,22 @@
+{
+  "world_id": 5,
+  "name": "Andromeda Core - The Great Spiral",
+  "difficulty": "HARD",
+  "story": "The core is unstable. Route a minimum-cost network through shifting beacons before the unstable links collapse.",
+  "energy_budget": 27,
+  "stars": [
+    {"id": 0, "name": "Andromeda", "x": 160, "y": 310, "type": "NORMAL"},
+    {"id": 1, "name": "Mirach", "x": 330, "y": 180, "type": "POWER"},
+    {"id": 2, "name": "Alpheratz", "x": 560, "y": 155, "type": "NORMAL"},
+    {"id": 3, "name": "Almach", "x": 790, "y": 230, "type": "UNSTABLE"},
+    {"id": 4, "name": "Nembus", "x": 865, "y": 390, "type": "ENERGY"},
+    {"id": 5, "name": "Upsilon", "x": 680, "y": 510, "type": "NORMAL"},
+    {"id": 6, "name": "Delta", "x": 430, "y": 525, "type": "POWER"},
+    {"id": 7, "name": "Mu Andromedae", "x": 220, "y": 480, "type": "UNSTABLE"},
+    {"id": 8, "name": "M31 Core", "x": 500, "y": 340, "type": "NORMAL"}
+  ],
+  "edges": [
+    [0, 1, 4], [1, 2, 3], [2, 3, 6], [3, 4, 4], [4, 5, 5], [5, 6, 3], [6, 7, 5], [7, 0, 7],
+    [0, 8, 5], [1, 8, 2], [2, 8, 4], [3, 8, 5], [5, 8, 4], [6, 8, 3], [7, 8, 4], [2, 5, 7], [0, 6, 8]
+  ]
+}
