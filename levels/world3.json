@@ -1,0 +1,30 @@
+{
+  "world_id": 3,
+  "name": "Cygnus X-1 - Event Horizon",
+  "story": "Gravitational tides distort space-time. Unstable stars will collapse links that remain incomplete too long.",
+  "energy_budget": 25,
+  "stars": [
+    {"id": 0, "name": "H-0", "x": 160, "y": 360, "type": "NORMAL"},
+    {"id": 1, "name": "H-1", "x": 300, "y": 200, "type": "POWER"},
+    {"id": 2, "name": "H-2", "x": 520, "y": 180, "type": "UNSTABLE"},
+    {"id": 3, "name": "H-3", "x": 720, "y": 220, "type": "NORMAL"},
+    {"id": 4, "name": "H-4", "x": 860, "y": 380, "type": "ENERGY"},
+    {"id": 5, "name": "H-5", "x": 320, "y": 520, "type": "NORMAL"},
+    {"id": 6, "name": "H-6", "x": 540, "y": 500, "type": "POWER"},
+    {"id": 7, "name": "H-7", "x": 740, "y": 530, "type": "UNSTABLE"}
+  ],
+  "edges": [
+    [0, 1, 5],
+    [0, 5, 4],
+    [1, 2, 4],
+    [1, 5, 6],
+    [1, 6, 7],
+    [2, 3, 3],
+    [2, 6, 5],
+    [3, 4, 4],
+    [3, 7, 6],
+    [4, 7, 5],
+    [5, 6, 3],
+    [6, 7, 4]
+  ]
+}
