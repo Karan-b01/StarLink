@@ -67,7 +67,7 @@ StarLink is a Data Structures & Algorithms project built in Python and Pygame. T
 | **M** | Toggle sound effects |
 | **P** | Toggle the ambient music loop |
 
-The same actions are available on screen. All five sectors are available from the Worlds picker.
+The same actions are available on screen. All ten sectors are available from the Worlds picker, with Easy, Medium, and Hard challenges.
 
 ### Scoring
 

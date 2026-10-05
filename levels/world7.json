@@ -1,0 +1,19 @@
+{
+  "world_id": 7,
+  "name": "Draco Nebula - Dragon's Path",
+  "difficulty": "EASY",
+  "story": "A chain of beacons is drifting through the Draco nebula. Find the cheapest routes and use the energy beacon to keep the network alive.",
+  "energy_budget": 24,
+  "stars": [
+    {"id": 0, "name": "Thuban", "x": 190, "y": 220, "type": "NORMAL"},
+    {"id": 1, "name": "Eltanin", "x": 400, "y": 180, "type": "POWER"},
+    {"id": 2, "name": "Rastaban", "x": 620, "y": 225, "type": "NORMAL"},
+    {"id": 3, "name": "Grumium", "x": 800, "y": 365, "type": "NORMAL"},
+    {"id": 4, "name": "Giausar", "x": 610, "y": 500, "type": "ENERGY"},
+    {"id": 5, "name": "Altais", "x": 330, "y": 485, "type": "NORMAL"}
+  ],
+  "edges": [
+    [0, 1, 5], [1, 2, 4], [2, 3, 5], [3, 4, 4], [4, 5, 3], [5, 0, 6],
+    [0, 2, 7], [1, 5, 4], [2, 4, 6], [1, 4, 8], [0, 5, 5]
+  ]
+}

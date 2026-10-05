@@ -1,0 +1,21 @@
+{
+  "world_id": 9,
+  "name": "Perseus Cluster - Twin Lights",
+  "difficulty": "MEDIUM",
+  "story": "Two star groups are separated by a dark corridor. Build a low-energy bridge between them without closing a loop.",
+  "energy_budget": 34,
+  "stars": [
+    {"id": 0, "name": "Mirfak", "x": 185, "y": 300, "type": "NORMAL"},
+    {"id": 1, "name": "Algol", "x": 340, "y": 175, "type": "POWER"},
+    {"id": 2, "name": "Atik", "x": 535, "y": 215, "type": "NORMAL"},
+    {"id": 3, "name": "Menkib", "x": 760, "y": 170, "type": "NORMAL"},
+    {"id": 4, "name": "Misam", "x": 865, "y": 350, "type": "ENERGY"},
+    {"id": 5, "name": "Gorgonea", "x": 700, "y": 520, "type": "UNSTABLE"},
+    {"id": 6, "name": "Zeta Persei", "x": 455, "y": 520, "type": "NORMAL"},
+    {"id": 7, "name": "Xi Persei", "x": 225, "y": 500, "type": "NORMAL"}
+  ],
+  "edges": [
+    [0, 1, 4], [1, 2, 5], [2, 3, 4], [3, 4, 3], [4, 5, 5], [5, 6, 4], [6, 7, 3], [7, 0, 6],
+    [0, 2, 6], [1, 6, 7], [2, 6, 5], [2, 5, 6], [3, 5, 4], [0, 7, 5], [1, 7, 6]
+  ]
+}

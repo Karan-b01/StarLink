@@ -1,0 +1,23 @@
+{
+  "world_id": 10,
+  "name": "Sagittarius Core - Event Horizon",
+  "difficulty": "HARD",
+  "story": "The galactic core is collapsing into darkness. Restore a nine-star network through unstable routes using the smallest possible energy budget.",
+  "energy_budget": 43,
+  "stars": [
+    {"id": 0, "name": "Kaus Australis", "x": 175, "y": 340, "type": "NORMAL"},
+    {"id": 1, "name": "Nunki", "x": 300, "y": 185, "type": "POWER"},
+    {"id": 2, "name": "Ascella", "x": 500, "y": 155, "type": "NORMAL"},
+    {"id": 3, "name": "Kaus Media", "x": 720, "y": 175, "type": "UNSTABLE"},
+    {"id": 4, "name": "Kaus Borealis", "x": 865, "y": 330, "type": "NORMAL"},
+    {"id": 5, "name": "Alnasl", "x": 790, "y": 505, "type": "ENERGY"},
+    {"id": 6, "name": "Tau Sagittarii", "x": 570, "y": 535, "type": "NORMAL"},
+    {"id": 7, "name": "Phi Sagittarii", "x": 350, "y": 520, "type": "UNSTABLE"},
+    {"id": 8, "name": "Galactic Eye", "x": 520, "y": 340, "type": "NORMAL"}
+  ],
+  "edges": [
+    [0, 1, 5], [1, 2, 4], [2, 3, 5], [3, 4, 4], [4, 5, 5], [5, 6, 3], [6, 7, 5], [7, 0, 6],
+    [0, 8, 6], [1, 8, 3], [2, 8, 5], [3, 8, 4], [4, 8, 6], [5, 8, 4], [6, 8, 3], [7, 8, 5],
+    [0, 6, 9], [1, 7, 7], [2, 6, 6], [3, 5, 7], [0, 7, 8]
+  ]
+}

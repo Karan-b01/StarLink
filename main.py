@@ -371,7 +371,7 @@ class GameApp:
         if success:
             detail = FONT.render(f"Network cost  {cost}     |     Optimal network  {self.state.optimal_cost}", True, (177, 207, 230))
             rating = f"EFFICIENCY RATING  {self.state.earned_stars} / 5"
-            hint_text = "All five sectors restored. Take another run?" if final_sector else "Beautifully connected. Ready for the next sector?"
+            hint_text = "All ten sectors restored. Take another run?" if final_sector else "Beautifully connected. Ready for the next sector?"
             hint_color = (115, 222, 199)
         else:
             detail = FONT.render(f"Energy remaining  {self.state.energy}     |     Links restored  {len(self.state.selected_edges)}", True, (218, 182, 191))

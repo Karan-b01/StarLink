@@ -1,0 +1,19 @@
+{
+  "world_id": 6,
+  "name": "Lyra Relay - Harmonic Beacons",
+  "difficulty": "EASY",
+  "story": "The Lyra relay has fallen quiet. Reconnect its bright beacons with a light touch and preserve the energy reserve.",
+  "energy_budget": 22,
+  "stars": [
+    {"id": 0, "name": "Altair", "x": 185, "y": 335, "type": "NORMAL"},
+    {"id": 1, "name": "Vega", "x": 350, "y": 195, "type": "POWER"},
+    {"id": 2, "name": "Deneb", "x": 565, "y": 175, "type": "NORMAL"},
+    {"id": 3, "name": "Sheliak", "x": 785, "y": 275, "type": "ENERGY"},
+    {"id": 4, "name": "Sulafat", "x": 665, "y": 485, "type": "NORMAL"},
+    {"id": 5, "name": "Albireo", "x": 365, "y": 520, "type": "NORMAL"}
+  ],
+  "edges": [
+    [0, 1, 4], [1, 2, 3], [2, 3, 5], [3, 4, 4], [4, 5, 3], [5, 0, 6],
+    [1, 5, 5], [1, 4, 6], [2, 4, 4], [0, 5, 5]
+  ]
+}
