@@ -98,6 +98,23 @@ class ParticleSystem:
             vy = math.sin(angle) * speed - random.uniform(20, 60)
             color = random.choice([(255, 215, 80), (140, 240, 255), (255, 255, 255), (255, 180, 100)])
             self.particles.append(Particle(star.x, star.y, vx, vy, color, random.randint(2, 5), random.uniform(0.6, 1.4)))
+    def emit_energy_spill(self, x, y, count=16):
+        """Emits cascading glowing particles spilling down from the energy meter."""
+        for _ in range(count):
+            vx = random.uniform(-35, 35)
+            vy = random.uniform(25, 95)
+            life = random.uniform(0.3, 0.7)
+            col = random.choice([(70, 215, 255), (140, 240, 255), (255, 120, 100), (255, 200, 100)])
+            self.particles.append(Particle(x + random.uniform(-4, 4), y, vx, vy, col, random.randint(2, 4), life))
+
+    def emit_plasma_tip(self, x, y, color=(140, 240, 255), count=3):
+        """Emits trailing stardust at the advancing head of a plasma laser draw."""
+        for _ in range(count):
+            angle = random.uniform(0, 6.283)
+            speed = random.uniform(15, 60)
+            vx = math.cos(angle) * speed
+            vy = math.sin(angle) * speed
+            self.particles.append(Particle(x, y, vx, vy, color, random.randint(1, 3), random.uniform(0.2, 0.45)))
 
     def update(self, dt):
         """Updates physics of all active particles."""
