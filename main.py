@@ -315,6 +315,13 @@ class GameApp:
             self._draw_intro_screen(now)
             return
 
+        # A quiet, dark playfield keeps the constellation readable over the
+        # animated nebula while leaving the side panels clear.
+        playfield = pygame.Surface((760, 548), pygame.SRCALPHA)
+        pygame.draw.rect(playfield, (2, 7, 19, 112), playfield.get_rect(), border_radius=18)
+        pygame.draw.rect(playfield, (56, 112, 159, 105), playfield.get_rect(), 1, border_radius=18)
+        screen.blit(playfield, (155, 82))
+
         # Thin constellation guide lines and active energy corridors.
         for u, v, base_cost in self.state.edges:
             a, b = self.state.stars[u], self.state.stars[v]
