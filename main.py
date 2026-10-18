@@ -546,73 +546,115 @@ class GameApp:
             screen.blit(fade, (0, 0))
 
     def _draw_intro_screen(self, now):
-        # Keep the galaxy moving behind the briefing, but hold back the puzzle nodes.
+        # 1. Semi-transparent deep cosmic veil
         veil = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
-        veil.fill((2, 7, 19, 112))
+        veil.fill((2, 6, 18, 140))
         screen.blit(veil, (0, 0))
 
-        eyebrow = SMALL.render("CONSTELLATION PUZZLE", True, (99, 194, 229))
-        screen.blit(eyebrow, eyebrow.get_rect(center=(WIDTH // 2, 74)))
-        pygame.draw.circle(screen, (37, 137, 205), (WIDTH // 2, 111), 22, 1)
-        logo_nodes = [(WIDTH // 2 - 13, 115), (WIDTH // 2 - 2, 101), (WIDTH // 2 + 14, 109), (WIDTH // 2 + 7, 124)]
-        for i, j in [(0, 1), (1, 2), (2, 3), (0, 3)]:
-            pygame.draw.line(screen, (108, 212, 255), logo_nodes[i], logo_nodes[j], 2)
-        for point in logo_nodes:
-            pygame.draw.circle(screen, (236, 249, 255), point, 3)
-        title = FONT_HERO.render("STARLINK", True, (237, 248, 255))
-        screen.blit(title, title.get_rect(center=(WIDTH // 2, 151)))
-        subtitle = FONT.render("Reconnect the stars using the least possible energy.", True, (166, 198, 222))
-        screen.blit(subtitle, subtitle.get_rect(center=(WIDTH // 2, 190)))
+        # 2. Main Glassmorphic Container Panel
+        main_box = pygame.Rect(45, 28, WIDTH - 90, HEIGHT - 56)
+        from visual.ui_hud import GlassPanel
+        GlassPanel.draw(screen, main_box, border_color=(45, 115, 190), bg_color=(5, 12, 28, 235), border_radius=20, glow=True)
 
-        cards = [
-            (95, "01", "CONNECT THE STARS", "Click two stars joined by a corridor to create a link.", (78, 198, 247)),
-            (405, "02", "AVOID CYCLES", "Build one connected network. A cycle is rejected by Union-Find.", (158, 143, 255)),
-            (715, "03", "SAVE YOUR ENERGY", "Choose low-cost links. Your final network is scored out of five stars.", (87, 226, 190)),
+        # 3. Holographic Emblem & Title Header
+        cx, cy = WIDTH // 2, 78
+        pulse = 0.5 + 0.5 * math.sin(now * 3.5)
+        pygame.draw.circle(screen, (18, 55, 105), (cx, cy), 22)
+        pygame.draw.circle(screen, (50, 190, 250), (cx, cy), 22, 1)
+        pygame.draw.circle(screen, (100, 225, 255), (cx, cy), 16 + int(pulse * 3), 1)
+        emblem_nodes = [
+            (cx - 11, cy + 5), (cx - 2, cy - 9), (cx + 11, cy - 3), (cx + 6, cy + 11)
         ]
-        for x, number, heading, copy, accent in cards:
-            rect = pygame.Rect(x, 226, 290, 205)
-            glass_panel(screen, rect, (5, 15, 34, 224), accent)
-            pygame.draw.circle(screen, tuple(channel // 4 for channel in accent), (x + 34, 267), 20)
-            number_text = MEDIUM.render(number, True, accent)
-            screen.blit(number_text, number_text.get_rect(center=(x + 34, 267)))
-            head = SMALL.render(heading, True, (218, 237, 250))
-            screen.blit(head, (x + 20, 306))
-            words = copy.split()
-            lines = []
-            line = ""
-            for word in words:
-                attempt = f"{line} {word}".strip()
-                if FONT.size(attempt)[0] > 247 and line:
-                    lines.append(line)
-                    line = word
-                else:
-                    line = attempt
-            if line:
-                lines.append(line)
-            for i, line in enumerate(lines[:3]):
-                surface_text = FONT.render(line, True, (150, 183, 209))
-                screen.blit(surface_text, (x + 20, 337 + i * 23))
+        for a, b in [(0, 1), (1, 2), (2, 3), (3, 0)]:
+            pygame.draw.line(screen, (130, 225, 255), emblem_nodes[a], emblem_nodes[b], 2)
+        for pt in emblem_nodes:
+            pygame.draw.circle(screen, (245, 252, 255), pt, 3)
 
-        special = "POWER: half link cost     ENERGY: +5 reserve     UNSTABLE: link collapses after 3 moves"
-        special_text = SMALL.render(special, True, (141, 177, 205))
-        screen.blit(special_text, special_text.get_rect(center=(WIDTH // 2, 472)))
+        title_glow = FONT_HERO.render("STARLINK", True, (35, 125, 205))
+        screen.blit(title_glow, title_glow.get_rect(center=(cx, 130)))
+        title_main = FONT_HERO.render("STARLINK", True, (245, 250, 255))
+        screen.blit(title_main, title_main.get_rect(center=(cx, 128)))
+
+        sub1 = SMALL.render("CONSTELLATION WEAVER  //  FLIGHT DIRECTIVE & ALGORITHM PROTOCOLS", True, (90, 205, 245))
+        screen.blit(sub1, sub1.get_rect(center=(cx, 161)))
+        sub2 = FONT.render("Deploy Minimum Spanning Trees (MST) & Union-Find Cycle Prevention to restore the celestial grid.", True, (175, 210, 235))
+        screen.blit(sub2, sub2.get_rect(center=(cx, 183)))
+
+        # 4. Three Glassmorphic Feature Cards
+        card_w, card_h = 296, 192
+        cards_data = [
+            (75, "01", "GRID TOPOLOGY", (75, 210, 255), [
+                "Click two stars joined by an energy corridor to forge a laser connection.",
+                "Corridors consume stellar energy. Connect every star into one network without exhausting reserve.",
+                "Target: Full sector connectivity.",
+            ]),
+            (402, "02", "CYCLE PREVENTION", (165, 145, 255), [
+                "Closed loops cause harmonic feedback and are rejected by stellar physics.",
+                "Union-Find (Disjoint Set) tracks connected components in real time to instantly block cycles.",
+                "Rule: No closed circuits.",
+            ]),
+            (729, "03", "KRUSKAL OPTIMUM", (75, 230, 160), [
+                "Kruskal's algorithm computes the theoretical minimum energy requirement.",
+                "Match the optimal spanning tree weight to earn 5-Star efficiency ratings.",
+                "Benchmark: Greedy edge selection.",
+            ]),
+        ]
+        for x, num, heading, accent, paragraphs in cards_data:
+            c_rect = pygame.Rect(x, 205, card_w, card_h)
+            GlassPanel.draw(screen, c_rect, border_color=accent, bg_color=(8, 18, 38, 220), border_radius=14, glow=False)
+
+            badge_pos = (x + 30, 232)
+            pygame.draw.circle(screen, (15, 35, 65), badge_pos, 15)
+            pygame.draw.circle(screen, accent, badge_pos, 15, 1)
+            num_surf = MEDIUM.render(num, True, accent)
+            screen.blit(num_surf, num_surf.get_rect(center=badge_pos))
+
+            h_surf = MEDIUM.render(heading, True, (240, 248, 255))
+            screen.blit(h_surf, (x + 55, 221))
+
+            pygame.draw.line(screen, (*accent[:3], 80), (x + 20, 254), (x + card_w - 20, 254), 1)
+
+            text_y = 264
+            for p in paragraphs:
+                wrapped_lines = self.wrap_text(p, SMALL, card_w - 36)
+                for line in wrapped_lines:
+                    screen.blit(SMALL.render(line, True, (175, 205, 230) if p != paragraphs[-1] else accent), (x + 18, text_y))
+                    text_y += 18
+                text_y += 4
+
+        # 5. Stellar Property Pill Strip
+        strip_rect = pygame.Rect(120, 412, WIDTH - 240, 36)
+        GlassPanel.draw(screen, strip_rect, border_color=(45, 100, 160), bg_color=(8, 18, 38, 220), border_radius=18)
+        properties = [
+            (210, "⚡ POWER STAR: -50% link cost", (85, 205, 255)),
+            (530, "🔋 ENERGY STAR: +5 reserve boost", (85, 235, 175)),
+            (845, "⏳ UNSTABLE STAR: 6-turn link decay", (255, 130, 115)),
+        ]
+        for px, ptext, pcol in properties:
+            pygame.draw.circle(screen, pcol, (px - 8, 430), 4)
+            ptxt = SMALL.render(ptext, True, (225, 240, 255))
+            screen.blit(ptxt, ptxt.get_rect(center=(px + ptxt.get_width() // 2, 430)))
+
+        # 6. Primary Action Play Button
+        hover = self.play_button.collidepoint(pygame.mouse.get_pos())
+        p_pulse = (math.sin(now * 3.5) + 1) * 0.5
+        p_bg = (18, 140, 220) if hover else (12, int(90 + p_pulse * 25), 160)
+        p_bc = (95, 225, 255) if hover else (60, 175, 240)
+        GlassPanel.draw(screen, self.play_button, border_color=p_bc, bg_color=(*p_bg, 250), border_radius=25, glow=hover)
+        play_label = MEDIUM.render("INITIALIZE MISSION  ▶", True, (255, 255, 255))
+        screen.blit(play_label, play_label.get_rect(center=(self.play_button.centerx, self.play_button.centery - 1)))
+        hint = SMALL.render("Press [ENTER] or [SPACE] to begin", True, (150, 205, 240))
+        screen.blit(hint, hint.get_rect(center=(self.play_button.centerx, self.play_button.bottom + 14)))
+
+        # 7. Quick Settings Buttons
         self.draw_action_button(self.intro_sfx_button, "SFX  ON" if self.sound.enabled else "SFX  OFF", self.sound.enabled)
         self.draw_action_button(self.intro_music_button, "MUSIC  ON" if self.sound.music_enabled else "MUSIC  OFF", self.sound.music_enabled)
-        self.draw_action_button(self.intro_maximize_button,
-                                "RESTORE WINDOW" if self.window_maximized else "MAXIMIZE WINDOW",
-                                self.window_maximized)
-        controls = "Z  Undo     Y  Redo     K  Kruskal solver     M  SFX     P  Music     R  Restart"
-        controls_text = SMALL.render(controls, True, (105, 145, 178))
-        screen.blit(controls_text, controls_text.get_rect(center=(WIDTH // 2, 675)))
+        self.draw_action_button(self.intro_maximize_button, "RESTORE" if self.window_maximized else "MAXIMIZE", self.window_maximized)
 
-        hover = self.play_button.collidepoint(pygame.mouse.get_pos())
-        pulse = (math.sin(now * 3) + 1) * .5
-        fill = (18, 135, 206, 252) if hover else (10, 93 + int(pulse * 17), 157, 245)
-        glass_panel(screen, self.play_button, fill, (79, 203, 255), 14)
-        play = MEDIUM.render("PLAY", True, (246, 252, 255))
-        screen.blit(play, play.get_rect(center=(self.play_button.centerx, self.play_button.centery - 2)))
-        hint = SMALL.render("Press ENTER to begin", True, (173, 215, 239))
-        screen.blit(hint, hint.get_rect(center=(self.play_button.centerx, self.play_button.bottom + 17)))
+        # 8. Flight controls footnote
+        controls = "[L-CLICK] Connect Stars   •   [H] MST Cut Hint   •   [K] Kruskal Solver   •   [Z/Y] Undo/Redo   •   [R] Restart"
+        controls_text = SMALL.render(controls, True, (115, 160, 195))
+        screen.blit(controls_text, controls_text.get_rect(center=(WIDTH // 2, 638)))
 
     @staticmethod
     def _star_points(cx, cy, outer, inner):
