@@ -193,23 +193,32 @@ class UIHud:
 
             is_picked = any(e[0] == min(u, v) and e[1] == max(u, v) for e in state.selected_edges)
             txt_color = (94, 232, 208) if is_picked else (177, 199, 220)
-            pygame.draw.circle(surface, (59, 123, 159) if is_picked else (34, 54, 75), (940, y+8), 9)
-            n = self.font_sub.render(f"{idx+1:02}", True, (202, 228, 242))
-            surface.blit(n, n.get_rect(center=(940, y+8)))
-            surface.blit(self.font_body.render(f"{display_weight}", True, (89, 195, 235)), (957, y))
-            line_str = self.fit_text(f"{u_name} - {v_name}", self.font_sub, 98)
+
+            # Numbered pill badge
+            pygame.draw.circle(surface, (59, 123, 159) if is_picked else (26, 42, 64), (940, y + 8), 9)
+            n = self.font_sub.render(f"{idx+1:02}", True, (220, 240, 255) if is_picked else (140, 180, 210))
+            surface.blit(n, n.get_rect(center=(940, y + 8)))
+
+            # Weight & Edge Name
+            surface.blit(self.font_body.render(f"{display_weight}", True, (89, 195, 235)), (955, y))
+            line_str = self.fit_text(f"{u_name}-{v_name}", self.font_sub, 92)
             edge_label = self.font_sub.render(line_str, True, txt_color)
-            surface.blit(edge_label, (974, y+1))
+            surface.blit(edge_label, (972, y + 1))
+
+            # Vertical indicator status tag on right edge
+            tag_color = (70, 235, 150) if is_picked else (40, 70, 95)
+            pygame.draw.rect(surface, tag_color, (1072, y + 2, 4, 15), border_radius=2)
+
             y += 21
 
         pygame.draw.line(surface, (36, 67, 91), (932, y + 3), (1072, y + 3), 1)
         surface.blit(self.font_sub.render("RESTORED LINKS", True, (121, 204, 239)), (932, y + 10))
 
-        sel_y = y + 32
+        sel_y = y + 30
         for u, v, w in state.selected_edges[:4]:
             u_name = state.stars[u].name
             v_name = state.stars[v].name
-            link_label = self.fit_text(f"{w}  {u_name} - {v_name}", self.font_sub, 140)
+            link_label = self.fit_text(f"⚡{w}  {u_name} - {v_name}", self.font_sub, 140)
             surface.blit(self.font_sub.render(link_label, True, (116, 224, 197)), (932, sel_y))
             sel_y += 17
 
@@ -235,63 +244,64 @@ class UIHud:
 
     def draw_bottom_dock(self, surface, state, is_maximized=False):
         """Draws the bottom status capsule and action buttons."""
-        brief_hover = self.btn_brief.collidepoint(pygame.mouse.get_pos())
-        GlassPanel.draw(surface, self.btn_brief, border_color=(84, 173, 222) if brief_hover else (39, 117, 170))
-        pygame.draw.circle(surface, (68, 87, 184), (48, self.height - 49), 20)
-        pygame.draw.circle(surface, (183, 200, 255), (48, self.height - 49), 8, 1)
-        pygame.draw.circle(surface, (224, 238, 255), (48, self.height - 49), 3)
-        surface.blit(self.font_section.render("MISSION BRIEF", True, (148, 210, 239)), (78, self.height - 72))
-        title = state.name if len(state.name) < 27 else state.name[:24] + "..."
-        surface.blit(self.font_body.render(title, True, (224, 237, 250)), (78, self.height - 50))
-        story = state.story.split(".")[0]
-        if len(story) > 36:
-            story = story[:33] + "..."
-        surface.blit(self.font_sub.render(story, True, (135, 172, 197)), (78, self.height - 31))
-        info_color = (166, 220, 247) if brief_hover else (105, 164, 197)
-        info_mark = self.font_sub.render("OPEN  ›", True, info_color)
-        surface.blit(info_mark, (self.btn_brief.right - 54, self.height - 71))
-
         mouse_pos = pygame.mouse.get_pos()
+        brief_hover = self.btn_brief.collidepoint(mouse_pos)
+        GlassPanel.draw(surface, self.btn_brief, border_color=(80, 190, 250) if brief_hover else (45, 110, 180), glow=brief_hover)
 
-        # Worlds Button
+        # Planet horizon / galaxy slice emblem
+        bx, by = self.btn_brief.x + 22, self.btn_brief.centery
+        pygame.draw.circle(surface, (15, 35, 75), (bx, by), 15)
+        pygame.draw.circle(surface, (45, 120, 210), (bx, by), 15, 1)
+        pygame.draw.arc(surface, (120, 220, 255), (bx - 14, by - 14, 28, 28), 0.2, 2.9, 2)
+        pygame.draw.circle(surface, (230, 245, 255), (bx + 4, by - 5), 2)
+
+        # Brief text
+        surface.blit(self.font_sub.render("MISSION BRIEF", True, (120, 205, 245)), (self.btn_brief.x + 44, self.btn_brief.y + 4))
+        title = state.name if len(state.name) < 22 else state.name[:19] + "..."
+        surface.blit(self.font_body.render(title, True, (230, 245, 255)), (self.btn_brief.x + 44, self.btn_brief.y + 19))
+        info_color = (170, 230, 255) if brief_hover else (110, 170, 210)
+        info_mark = self.font_sub.render("OPEN ›", True, info_color)
+        surface.blit(info_mark, (self.btn_brief.right - 46, self.btn_brief.centery - 6))
+
+        # Worlds Button (Pill shape)
         hover_w = self.btn_worlds.collidepoint(mouse_pos)
-        w_bg = (27, 54, 78) if hover_w else (12, 25, 42)
-        GlassPanel.draw(surface, self.btn_worlds, border_color=(48, 131, 174), bg_color=(*w_bg, 245), border_radius=12)
-        t_w = self.font_btn.render("WORLDS", True, (197, 226, 245))
+        w_bg = (25, 52, 85) if hover_w else (12, 24, 42)
+        w_bc = (80, 190, 250) if hover_w else (45, 100, 165)
+        GlassPanel.draw(surface, self.btn_worlds, border_color=w_bc, bg_color=(*w_bg, 245), border_radius=19, glow=hover_w)
+        t_w = self.font_btn.render("WORLDS", True, (240, 248, 255) if hover_w else (190, 220, 245))
         surface.blit(t_w, t_w.get_rect(center=self.btn_worlds.center))
 
-        # Algorithm Solver Replay Button
+        # Algorithm Solver Replay Button (Pill shape)
         hover_a = self.btn_algo.collidepoint(mouse_pos)
-        a_bg = (27, 54, 78) if hover_a else (12, 25, 42)
-        GlassPanel.draw(surface, self.btn_algo, border_color=(48, 131, 174), bg_color=(*a_bg, 245), border_radius=12)
-        t_a = self.font_btn.render("SOLVER K", True, (197, 226, 245))
+        a_bg = (25, 52, 85) if hover_a else (12, 24, 42)
+        a_bc = (80, 190, 250) if hover_a else (45, 100, 165)
+        GlassPanel.draw(surface, self.btn_algo, border_color=a_bc, bg_color=(*a_bg, 245), border_radius=19, glow=hover_a)
+        t_a = self.font_btn.render("SOLVER K", True, (240, 248, 255) if hover_a else (190, 220, 245))
         surface.blit(t_a, t_a.get_rect(center=self.btn_algo.center))
 
-        # Algorithm Hint Button (MST Cut)
+        # Algorithm Hint Button (Emerald Green Pill matching reference mockup)
         hover_h = self.btn_hint.collidepoint(mouse_pos)
-        h_bg = (38, 70, 48) if hover_h else (16, 38, 26)
-        GlassPanel.draw(surface, self.btn_hint, border_color=(70, 190, 130), bg_color=(*h_bg, 245), border_radius=12)
-        t_h = self.font_btn.render("HINT  H", True, (180, 245, 205))
+        h_bg = (24, 72, 48) if hover_h else (16, 44, 30)
+        h_bc = (80, 255, 165) if hover_h else (50, 210, 130)
+        GlassPanel.draw(surface, self.btn_hint, border_color=h_bc, bg_color=(*h_bg, 250), border_radius=19, glow=hover_h)
+        t_h = self.font_btn.render("HINT [H]", True, (230, 255, 240) if hover_h else (190, 255, 215))
         surface.blit(t_h, t_h.get_rect(center=self.btn_hint.center))
 
-        # Next World Button
+        # Next World Button (Electric Blue/Cyan Pill matching reference mockup)
         hover_n = self.btn_next.collidepoint(mouse_pos)
-        n_bg = (15, 132, 205) if hover_n else (10, 88, 151)
-        GlassPanel.draw(surface, self.btn_next, border_color=(72, 194, 244), bg_color=(*n_bg, 250), border_radius=12)
-        t_n = self.font_btn.render("NEXT SECTOR  >", True, (242, 251, 255))
+        n_bg = (18, 135, 215) if hover_n else (10, 85, 150)
+        n_bc = (120, 230, 255) if hover_n else (70, 195, 245)
+        GlassPanel.draw(surface, self.btn_next, border_color=n_bc, bg_color=(*n_bg, 255), border_radius=19, glow=hover_n)
+        t_n = self.font_btn.render("NEXT SECTOR  >", True, (255, 255, 255))
         surface.blit(t_n, t_n.get_rect(center=self.btn_next.center))
 
+        # Star Info Button (Pill shape)
         info_hover = self.btn_sky_info.collidepoint(mouse_pos)
-        info_bg = (27, 54, 78) if info_hover else (12, 25, 42)
-        GlassPanel.draw(surface, self.btn_sky_info, border_color=(75, 156, 197), bg_color=(*info_bg, 245), border_radius=12)
-        info_text = self.font_btn.render("STAR INFO  I", True, (197, 226, 245))
+        info_bg = (25, 52, 85) if info_hover else (12, 24, 42)
+        info_bc = (80, 190, 250) if info_hover else (45, 100, 165)
+        GlassPanel.draw(surface, self.btn_sky_info, border_color=info_bc, bg_color=(*info_bg, 245), border_radius=19, glow=info_hover)
+        info_text = self.font_btn.render("STAR INFO [I]", True, (240, 248, 255) if info_hover else (190, 220, 245))
         surface.blit(info_text, info_text.get_rect(center=self.btn_sky_info.center))
-
-        maximize_hover = self.btn_maximize.collidepoint(mouse_pos)
-        maximize_bg = (27, 54, 78) if maximize_hover else (12, 25, 42)
-        GlassPanel.draw(surface, self.btn_maximize, border_color=(75, 156, 197), bg_color=(*maximize_bg, 245), border_radius=12)
-        maximize_label = self.font_btn.render("RESTORE WINDOW" if is_maximized else "MAXIMIZE WINDOW", True, (197, 226, 245))
-        surface.blit(maximize_label, maximize_label.get_rect(center=self.btn_maximize.center))
 
         # Worlds Selection Drawer
         self.drawer_progress = min(1.0, self.drawer_progress + 0.12) if self.show_worlds_drawer else max(0.0, self.drawer_progress - 0.16)
