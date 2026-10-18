@@ -127,7 +127,7 @@ class CelestialRenderer:
             pygame.draw.line(surface, (255, 255, 255), p1, p2, 1)
         else:
             # Subtle candidate edge
-            pygame.draw.line(surface, (45, 75, 125), p1, p2, 2)
+            pygame.draw.line(surface, (91, 132, 184), p1, p2, 2)
 
         # Edge cost pill background to keep text sharp against background stars
         mid = ((p1[0] + p2[0]) // 2, (p1[1] + p2[1]) // 2)
