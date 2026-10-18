@@ -92,6 +92,8 @@ class GameApp:
         self.active_hint_edge = None
         self.hint_timer = 0.0
         self.victory_burst_done = False
+        self.display_energy = 0.0
+        self.active_plasma_beams = []
         self.result_buttons = {
             "retry": pygame.Rect(WIDTH // 2 - 178, 438, 160, 48),
             "next": pygame.Rect(WIDTH // 2 + 18, 438, 160, 48),
@@ -130,6 +132,8 @@ class GameApp:
         self.sky_notes_open = False
         self.mission_brief_open = False
         self.transition_timer = 0.42
+        self.display_energy = float(self.state.energy)
+        self.active_plasma_beams = []
 
     def handle_star_click(self, star_id):
         if self.selected_star is None:
@@ -149,6 +153,12 @@ class GameApp:
                 self.particles.emit_cycle_rejection((s1.x, s1.y), (s2.x, s2.y), 26)
             elif ok:
                 self.sound.play("link")
+                self.active_plasma_beams.append({
+                    'p1': (s1.x, s1.y),
+                    'p2': (s2.x, s2.y),
+                    'progress': 0.0,
+                    'speed': 3.6,
+                })
                 self.particles.emit_link_corridor((s1.x, s1.y), (s2.x, s2.y), (60, 215, 255), 24)
                 self.particles.emit_star_burst(s1.x, s1.y, (130, 235, 255), 14)
                 self.particles.emit_star_burst(s2.x, s2.y, (130, 235, 255), 14)
@@ -257,6 +267,28 @@ class GameApp:
     def update(self, dt):
         self.transition_timer = max(0.0, self.transition_timer - dt)
         self.particles.update(dt)
+
+        # Smooth fluid energy bar interpolation and particle spill
+        if abs(self.display_energy - self.state.energy) > 0.05:
+            old_e = self.display_energy
+            self.display_energy += (self.state.energy - self.display_energy) * min(1.0, dt * 7.5)
+            if old_e > self.display_energy + 0.12:
+                pct = max(0.0, min(1.0, self.display_energy / self.state.max_energy if self.state.max_energy > 0 else 0))
+                spark_x = 504 + int(215 * pct)
+                self.particles.emit_energy_spill(spark_x, 49, count=2)
+        else:
+            self.display_energy = float(self.state.energy)
+
+        # Update active plasma laser corridors
+        for beam in self.active_plasma_beams[:]:
+            beam['progress'] = min(1.0, beam['progress'] + dt * beam['speed'])
+            p1, p2 = beam['p1'], beam['p2']
+            tip_x = p1[0] + (p2[0] - p1[0]) * beam['progress']
+            tip_y = p1[1] + (p2[1] - p1[1]) * beam['progress']
+            self.particles.emit_plasma_tip(tip_x, tip_y, count=2)
+            if beam['progress'] >= 1.0:
+                self.active_plasma_beams.remove(beam)
+
         if self.hint_timer > 0:
             self.hint_timer = max(0.0, self.hint_timer - dt)
             if self.hint_timer == 0:
@@ -392,6 +424,35 @@ class GameApp:
 
         self.particles.draw(screen)
 
+        # Draw active progressive plasma laser corridor draws
+        for beam in self.active_plasma_beams:
+            bp1, bp2 = beam['p1'], beam['p2']
+            prog = beam['progress']
+            tip = (bp1[0] + (bp2[0] - bp1[0]) * prog, bp1[1] + (bp2[1] - bp1[1]) * prog)
+            pygame.draw.line(screen, (30, 110, 220), bp1, tip, 8)
+            pygame.draw.line(screen, (80, 220, 255), bp1, tip, 4)
+            pygame.draw.line(screen, (255, 255, 255), bp1, tip, 2)
+            pygame.draw.circle(screen, (255, 255, 255), (int(tip[0]), int(tip[1])), 5)
+            pygame.draw.circle(screen, (100, 230, 255), (int(tip[0]), int(tip[1])), 9, 2)
+
+        # Candidate neighbor pulsing radar rings when a star is selected
+        if self.selected_star is not None:
+            cand_neighbors = set()
+            for u, v, _ in self.state.edges:
+                if u == self.selected_star and not any(e[0] == min(u, v) and e[1] == max(u, v) for e in self.state.selected_edges):
+                    cand_neighbors.add(v)
+                elif v == self.selected_star and not any(e[0] == min(u, v) and e[1] == max(u, v) for e in self.state.selected_edges):
+                    cand_neighbors.add(u)
+            for neighbor_id in cand_neighbors:
+                n_star = self.state.stars[neighbor_id]
+                for ring_i in range(2):
+                    ring_phase = (now * 2.2 + neighbor_id * 0.5 + ring_i * 0.5) % 1.0
+                    ring_r = int(14 + ring_phase * 20)
+                    ring_alpha = int((1.0 - ring_phase) * 160)
+                    ring_surf = pygame.Surface((ring_r * 2 + 4, ring_r * 2 + 4), pygame.SRCALPHA)
+                    pygame.draw.circle(ring_surf, (80, 220, 255, ring_alpha), (ring_r + 2, ring_r + 2), ring_r, 2)
+                    screen.blit(ring_surf, (int(n_star.x - ring_r - 2), int(n_star.y - ring_r - 2)))
+
         for star in self.state.star_list:
             CelestialRenderer.draw_star(screen, star, self.selected_star == star.id, now, FONT)
 
@@ -457,7 +518,7 @@ class GameApp:
                 screen.blit(role_lbl, (card_x + 8, card_y + 26))
 
         # Overlay panels follow the compact constellation-dashboard layout.
-        self.hud.draw_top_bar(screen, self.state, not self.sound.enabled, not self.sound.music_enabled)
+        self.hud.draw_top_bar(screen, self.state, not self.sound.enabled, not self.sound.music_enabled, display_energy=self.display_energy)
         self.hud.draw_left_stars_panel(screen, self.state.star_list)
         self.hud.draw_kruskal_inspector(screen, self.state)
         self.hud.draw_controls_panel(screen)
