@@ -27,21 +27,21 @@ class UIHud:
         self.font_body = pygame.font.SysFont("Segoe UI", 14)
         self.font_btn = pygame.font.SysFont("Segoe UI", 15, bold=True)
 
-        # Top Right Quick Buttons
-        self.btn_sound = pygame.Rect(824, 18, 47, 46)
-        self.btn_music = pygame.Rect(875, 18, 47, 46)
-        self.btn_undo = pygame.Rect(926, 18, 47, 46)
-        self.btn_redo = pygame.Rect(977, 18, 47, 46)
-        self.btn_settings = pygame.Rect(1028, 18, 48, 46)
+        # Top Right Quick Buttons (matching reference image)
+        self.btn_undo = pygame.Rect(752, 18, 54, 38)
+        self.btn_redo = pygame.Rect(812, 18, 54, 38)
+        self.btn_settings = pygame.Rect(872, 18, 60, 38)   # RESET
+        self.btn_sound = pygame.Rect(938, 18, 44, 38)      # SFX / Sound
+        self.btn_music = pygame.Rect(988, 18, 44, 38)      # Music
+        self.btn_maximize = pygame.Rect(1038, 18, 44, 38)   # ⛶ Fullscreen / Maximize
 
-        # Bottom Bar Navigation Buttons
-        self.btn_worlds = pygame.Rect(300, height - 54, 96, 36)
-        self.btn_algo = pygame.Rect(404, height - 54, 104, 36)
-        self.btn_hint = pygame.Rect(516, height - 54, 96, 36)
-        self.btn_next = pygame.Rect(620, height - 54, 122, 36)
-        self.btn_sky_info = pygame.Rect(750, height - 54, 104, 36)
-        self.btn_maximize = pygame.Rect(862, height - 54, 146, 36)
-        self.btn_brief = pygame.Rect(18, height - 82, 268, 66)
+        # Bottom Bar Navigation Buttons (matching reference image)
+        self.btn_brief = pygame.Rect(18, height - 58, 240, 42)
+        self.btn_worlds = pygame.Rect(276, height - 54, 96, 38)
+        self.btn_algo = pygame.Rect(380, height - 54, 98, 38)
+        self.btn_hint = pygame.Rect(486, height - 54, 104, 38)
+        self.btn_next = pygame.Rect(598, height - 54, 126, 38)
+        self.btn_sky_info = pygame.Rect(732, height - 54, 110, 38)
 
         # Worlds Selection Drawer
         self.show_worlds_drawer = False
@@ -51,64 +51,73 @@ class UIHud:
             for index in range(10)
         ]
 
-    def draw_top_bar(self, surface, state, is_muted, is_music_muted=False):
+    def draw_top_bar(self, surface, state, is_muted, is_music_muted=False, display_energy=None):
         # 1. StarLink Logo Capsule
-        GlassPanel.draw(surface, (18, 16, 178, 52))
-        cx, cy = 43, 42
+        GlassPanel.draw(surface, (18, 16, 175, 52), border_color=(45, 110, 180), border_radius=14)
+        cx, cy = 42, 42
         pulse = .5 + .5 * pygame.math.Vector2(1, 0).rotate(pygame.time.get_ticks() * .12).y
-        pygame.draw.circle(surface, (20, 104, 173), (cx, cy), 19)
+        pygame.draw.circle(surface, (20, 104, 173), (cx, cy), 18)
         pygame.draw.circle(surface, (50, 192, 248), (cx, cy), 14 + int(pulse * 2), 1)
-        logo_points = [(cx - 10, cy + 4), (cx - 2, cy - 9), (cx + 10, cy - 3), (cx + 5, cy + 10)]
+        logo_points = [(cx - 9, cy + 4), (cx - 2, cy - 8), (cx + 9, cy - 3), (cx + 5, cy + 9)]
         for a, b in [(0, 1), (1, 2), (2, 3), (3, 0)]:
             pygame.draw.line(surface, (144, 229, 255), logo_points[a], logo_points[b], 1)
         for point in logo_points:
             pygame.draw.circle(surface, (233, 249, 255), point, 2)
-        surface.blit(self.font_logo.render("StarLink", True, (239, 248, 255)), (68, 23))
-        surface.blit(self.font_sub.render("CONSTELLATION PUZZLE", True, (117, 177, 211)), (70, 48))
+        surface.blit(self.font_logo.render("StarLink", True, (240, 248, 255)), (66, 22))
+        surface.blit(self.font_sub.render("CONSTELLATION PUZZLE", True, (115, 180, 220)), (68, 47))
 
         # 2. Sector Mission Capsule
-        GlassPanel.draw(surface, (206, 16, 285, 52))
+        GlassPanel.draw(surface, (202, 16, 260, 52), border_color=(45, 110, 180), border_radius=14)
         world_title = state.name.split(" - ")[-1].upper()
-        if len(world_title) > 24:
-            world_title = world_title[:21] + "..."
-        sector_caption = f"ACTIVE SECTOR  {state.world_id:02}  /  {state.difficulty}"
-        surface.blit(self.font_sub.render(sector_caption, True, (112, 174, 207)), (220, 20))
-        title = self.font_section.render(world_title, True, (228, 240, 251))
-        surface.blit(title, (220, 39))
+        if len(world_title) > 22:
+            world_title = world_title[:19] + "..."
+        sector_caption = f"ACTIVE SECTOR  (SECTOR {state.world_id:02} / {state.difficulty})"
+        surface.blit(self.font_sub.render(sector_caption, True, (120, 180, 220)), (218, 20))
+        # Glowing yellow/amber status orb matching reference
+        pygame.draw.circle(surface, (255, 200, 80), (225, 47), 5)
+        pygame.draw.circle(surface, (255, 240, 180), (225, 47), 2)
+        surface.blit(self.font_section.render(world_title, True, (235, 245, 255)), (237, 37))
 
         # 3. Energy Bar Capsule
-        GlassPanel.draw(surface, (500, 16, 164, 52))
-        pygame.draw.polygon(surface, (99, 222, 255), [(520, 23), (511, 40), (518, 40), (514, 57), (529, 36), (522, 36)])
-        e_text = f"ENERGY  {state.energy}/{state.max_energy}"
-        surface.blit(self.font_section.render(e_text, True, (224, 242, 255)), (535, 20))
-        
-        # Energy Fill Gauge
-        bar_x, bar_y, bar_w, bar_h = 535, 44, 113, 9
-        pygame.draw.rect(surface, (14, 27, 43), (bar_x, bar_y, bar_w, bar_h), border_radius=5)
-        pct = max(0.0, min(1.0, state.energy / state.max_energy if state.max_energy > 0 else 0))
-        fill_color = (45, 202, 246) if pct > 0.3 else (255, 120, 103)
+        GlassPanel.draw(surface, (470, 16, 262, 52), border_color=(45, 120, 200), border_radius=14)
+        # Cyan Lightning Bolt
+        pygame.draw.polygon(surface, (60, 215, 255), [(488, 23), (480, 39), (487, 39), (483, 55), (497, 35), (490, 35)])
+        disp_e = state.energy if display_energy is None else display_energy
+        e_text = f"ENERGY  {int(disp_e)} / {state.max_energy}"
+        surface.blit(self.font_section.render(e_text, True, (230, 245, 255)), (504, 20))
+
+        # Energy Glowing Gradient Bar (Cyan -> Purple with leading spark)
+        bar_x, bar_y, bar_w, bar_h = 504, 43, 215, 12
+        pygame.draw.rect(surface, (10, 20, 35), (bar_x, bar_y, bar_w, bar_h), border_radius=6)
+        pct = max(0.0, min(1.0, disp_e / state.max_energy if state.max_energy > 0 else 0))
         if pct > 0:
-            pygame.draw.rect(surface, fill_color, (bar_x, bar_y, int(bar_w * pct), bar_h), border_radius=4)
+            cur_w = max(4, int(bar_w * pct))
+            bar_surf = pygame.Surface((cur_w, bar_h), pygame.SRCALPHA)
+            for bx in range(cur_w):
+                t_grad = bx / max(1, bar_w)
+                r = int(45 + t_grad * 140)
+                g = int(210 - t_grad * 120)
+                b = 255
+                pygame.draw.line(bar_surf, (r, g, b, 240), (bx, 0), (bx, bar_h))
+            surface.blit(bar_surf, (bar_x, bar_y))
+            pygame.draw.circle(surface, (255, 255, 255), (bar_x + cur_w - 2, bar_y + bar_h // 2), 4)
 
-        # 4. Edges Selected Tracker
-        GlassPanel.draw(surface, (674, 16, 148, 52))
-        target_edges = max(1, len(state.stars) - 1)
-        cur_edges = len(state.selected_edges)
-        cur_cost = sum(c for _, _, c in state.selected_edges)
-        surface.blit(self.font_sub.render(f"LINKS  {cur_edges} / {target_edges}", True, (165, 203, 230)), (688, 23))
-        surface.blit(self.font_sub.render(f"LINK COST  {cur_cost}", True, (165, 203, 230)), (688, 45))
-
-        # 5. Top Right Quick Buttons
+        # 4. Top Right Quick Buttons (matching reference image)
+        mouse_pos = pygame.mouse.get_pos()
         buttons = [
-            (self.btn_sound, "SFX OFF" if is_muted else "SFX ON"),
-            (self.btn_music, "MUS OFF" if is_music_muted else "MUS ON"),
-            (self.btn_undo, "UNDO"),
-            (self.btn_redo, "REDO"),
-            (self.btn_settings, "RESET")
+            (self.btn_undo, "UNDO", False),
+            (self.btn_redo, "REDO", False),
+            (self.btn_settings, "RESET", False),
+            (self.btn_sound, "MUTE" if is_muted else "SFX", is_muted),
+            (self.btn_music, "♫ OFF" if is_music_muted else "♫", is_music_muted),
+            (self.btn_maximize, "⛶", False),
         ]
-        for rect, label in buttons:
-            GlassPanel.draw(surface, rect, border_color=(50, 95, 170), border_radius=6)
-            txt = self.font_sub.render(label, True, (210, 230, 255))
+        for rect, label, active in buttons:
+            hover = rect.collidepoint(mouse_pos)
+            bg = (24, 48, 80) if hover else (12, 22, 38)
+            border = (80, 185, 245) if hover else (45, 95, 160)
+            GlassPanel.draw(surface, rect, border_color=border, bg_color=(*bg, 235), border_radius=10, glow=hover)
+            txt = self.font_sub.render(label, True, (240, 248, 255) if hover else (190, 220, 245))
             surface.blit(txt, txt.get_rect(center=rect.center))
 
     def draw_left_stars_panel(self, surface, stars):
