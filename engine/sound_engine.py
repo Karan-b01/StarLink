@@ -25,7 +25,8 @@ class SoundEngine:
                 "cycle": self._make_buzz(freq=120.0, duration=0.30),                   # Harsh square buzz
                 "undo": self._make_sweep(start_f=650, end_f=220, duration=0.15),      # Descending swoosh
                 "redo": self._make_sweep(start_f=220, end_f=650, duration=0.15),      # Ascending swoosh
-                "win": self._make_chord([523.25, 659.25, 783.99, 1046.50], 0.65)      # C Major Triad
+                "win": self._make_chord([523.25, 659.25, 783.99, 1046.50], 0.65),     # C Major Triad
+                "hint": self._make_chord([440.0, 554.37, 659.25], 0.35)              # A Major chime
             }
             self.music_sound = self._make_ambient_loop()
             self.music_channel = pygame.mixer.Channel(15)

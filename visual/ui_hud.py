@@ -29,12 +29,13 @@ class UIHud:
         self.btn_settings = pygame.Rect(1028, 18, 48, 46)
 
         # Bottom Bar Navigation Buttons
-        self.btn_worlds = pygame.Rect(340, height - 54, 105, 36)
-        self.btn_algo = pygame.Rect(455, height - 54, 115, 36)
-        self.btn_next = pygame.Rect(580, height - 54, 145, 36)
-        self.btn_sky_info = pygame.Rect(740, height - 54, 112, 36)
-        self.btn_maximize = pygame.Rect(864, height - 54, 145, 36)
-        self.btn_brief = pygame.Rect(18, height - 82, 275, 66)
+        self.btn_worlds = pygame.Rect(300, height - 54, 96, 36)
+        self.btn_algo = pygame.Rect(404, height - 54, 104, 36)
+        self.btn_hint = pygame.Rect(516, height - 54, 96, 36)
+        self.btn_next = pygame.Rect(620, height - 54, 122, 36)
+        self.btn_sky_info = pygame.Rect(750, height - 54, 104, 36)
+        self.btn_maximize = pygame.Rect(862, height - 54, 146, 36)
+        self.btn_brief = pygame.Rect(18, height - 82, 268, 66)
 
         # Worlds Selection Drawer
         self.show_worlds_drawer = False
@@ -127,7 +128,7 @@ class UIHud:
         legend = [
             ("POWER: half cost", (85, 207, 255)),
             ("ENERGY: +5 reserve", (89, 232, 183)),
-            ("UNSTABLE: 3 moves", (255, 119, 112)),
+            ("UNSTABLE: timed link", (255, 119, 112)),
         ]
         for label, color in legend:
             surface.blit(self.font_sub.render(self.fit_text(label, self.font_sub, 112), True, color), (30, y + 5))
@@ -205,6 +206,7 @@ class UIHud:
 
         controls = [
             ("CLICK TWO STARS", "Create a connection"),
+            ("H", "Algorithm Hint (MST Cut)"),
             ("Z   /   Y", "Undo   /   redo"),
             ("K", "Animate Kruskal"),
             ("M   /   P", "Sound effects / music"),
@@ -213,8 +215,8 @@ class UIHud:
         y = 472
         for key_text, desc in controls:
             surface.blit(self.font_body.render(key_text, True, (207, 227, 243)), (932, y))
-            surface.blit(self.font_sub.render(desc, True, (132, 165, 191)), (932, y + 13))
-            y += 26
+            surface.blit(self.font_sub.render(desc, True, (132, 165, 191)), (932, y + 12))
+            y += 24
 
     def draw_bottom_dock(self, surface, state, is_maximized=False):
         """Draws the bottom status capsule and action buttons."""
@@ -243,12 +245,19 @@ class UIHud:
         t_w = self.font_btn.render("WORLDS", True, (197, 226, 245))
         surface.blit(t_w, t_w.get_rect(center=self.btn_worlds.center))
 
-        # Algorithm Button
+        # Algorithm Solver Replay Button
         hover_a = self.btn_algo.collidepoint(mouse_pos)
         a_bg = (27, 54, 78) if hover_a else (12, 25, 42)
         GlassPanel.draw(surface, self.btn_algo, border_color=(48, 131, 174), bg_color=(*a_bg, 245), border_radius=12)
-        t_a = self.font_btn.render("ALGORITHM", True, (197, 226, 245))
+        t_a = self.font_btn.render("SOLVER K", True, (197, 226, 245))
         surface.blit(t_a, t_a.get_rect(center=self.btn_algo.center))
+
+        # Algorithm Hint Button (MST Cut)
+        hover_h = self.btn_hint.collidepoint(mouse_pos)
+        h_bg = (38, 70, 48) if hover_h else (16, 38, 26)
+        GlassPanel.draw(surface, self.btn_hint, border_color=(70, 190, 130), bg_color=(*h_bg, 245), border_radius=12)
+        t_h = self.font_btn.render("HINT  H", True, (180, 245, 205))
+        surface.blit(t_h, t_h.get_rect(center=self.btn_hint.center))
 
         # Next World Button
         hover_n = self.btn_next.collidepoint(mouse_pos)

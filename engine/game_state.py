@@ -197,3 +197,39 @@ class GameState:
             self.energy -= action["cost"]
             self.status_message = f"Redid link ({edge[0]}, {edge[1]})."
             self._check_victory()
+
+    def get_algorithm_hint(self):
+        """
+        Computes the next optimal algorithmic corridor using the MST Cut Property.
+        Returns: ((u, v, cost), explanation_str) or (None, reason_str)
+        """
+        if self.is_completed:
+            return None, "Constellation already fully restored!"
+
+        uf = UnionFind(list(self.stars.keys()))
+        for u, v, _ in self.selected_edges:
+            uf.union(u, v)
+
+        sorted_candidates = sorted(
+            self.edges,
+            key=lambda e: self.compute_edge_cost(e[0], e[1], e[2])
+        )
+
+        mst_pairs = {(min(u, v), max(u, v)) for u, v, _ in self.mst_edges}
+        for u, v, base_cost in sorted_candidates:
+            a, b = min(u, v), max(u, v)
+            if any(e[0] == a and e[1] == b for e in self.selected_edges):
+                continue
+            if uf.find(a) != uf.find(b) and (a, b) in mst_pairs:
+                eff_cost = self.compute_edge_cost(a, b, base_cost)
+                return (a, b, eff_cost), f"MST Cut Hint: Corridor ({self.stars[a].name} - {self.stars[b].name}, cost {eff_cost}) is an optimal greedy choice."
+
+        for u, v, base_cost in sorted_candidates:
+            a, b = min(u, v), max(u, v)
+            if any(e[0] == a and e[1] == b for e in self.selected_edges):
+                continue
+            if uf.find(a) != uf.find(b):
+                eff_cost = self.compute_edge_cost(a, b, base_cost)
+                return (a, b, eff_cost), f"Greedy Bridge: Corridor ({self.stars[a].name} - {self.stars[b].name}, cost {eff_cost}) safely joins star groups."
+
+        return None, "No remaining valid corridors found."

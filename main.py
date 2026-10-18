@@ -11,6 +11,7 @@ from engine.sound_engine import SoundEngine
 from visual.celestial_renderer import CelestialRenderer
 from visual.starfield import ParallaxStarfield
 from visual.ui_hud import UIHud
+from visual.particle_system import ParticleSystem
 
 pygame.init()
 WIDTH, HEIGHT = 1100, 720
@@ -85,7 +86,12 @@ class GameApp:
             "sky_info": self.hud.btn_sky_info,
             "maximize": self.hud.btn_maximize,
             "brief": self.hud.btn_brief,
+            "hint": self.hud.btn_hint,
         }
+        self.particles = ParticleSystem()
+        self.active_hint_edge = None
+        self.hint_timer = 0.0
+        self.victory_burst_done = False
         self.result_buttons = {
             "retry": pygame.Rect(WIDTH // 2 - 178, 438, 160, 48),
             "next": pygame.Rect(WIDTH // 2 + 18, 438, 160, 48),
@@ -112,6 +118,9 @@ class GameApp:
         self.selected_star = None
         self.flash_cycle = None
         self.flash_timer = 0.0
+        self.active_hint_edge = None
+        self.hint_timer = 0.0
+        self.victory_burst_done = False
         self.win_sound_played = False
         self.stepper_gen = None
         self.stepper_timer = 0.0
@@ -125,17 +134,43 @@ class GameApp:
     def handle_star_click(self, star_id):
         if self.selected_star is None:
             self.selected_star = star_id
-            self.state.status_message = f"Star {self.state.stars[star_id].name} selected — choose a connected star."
+            s = self.state.stars[star_id]
+            self.particles.emit_star_burst(s.x, s.y, (85, 215, 255), 16)
+            self.state.status_message = f"Star {s.name} selected — choose a connected star."
             return
         if self.selected_star != star_id:
-            ok, _ = self.state.connect_edge(self.selected_star, star_id)
+            u, v = self.selected_star, star_id
+            s1, s2 = self.state.stars[u], self.state.stars[v]
+            ok, _ = self.state.connect_edge(u, v)
             if not ok and self.state.cycle_edge_flash:
                 self.flash_cycle = self.state.cycle_edge_flash
                 self.flash_timer = 0.7
                 self.sound.play("cycle")
+                self.particles.emit_cycle_rejection((s1.x, s1.y), (s2.x, s2.y), 26)
             elif ok:
                 self.sound.play("link")
+                self.particles.emit_link_corridor((s1.x, s1.y), (s2.x, s2.y), (60, 215, 255), 24)
+                self.particles.emit_star_burst(s1.x, s1.y, (130, 235, 255), 14)
+                self.particles.emit_star_burst(s2.x, s2.y, (130, 235, 255), 14)
+                if self.state.is_completed:
+                    self.particles.emit_victory_cascade(self.state.star_list, 80)
         self.selected_star = None
+
+    def trigger_hint(self):
+        hint_edge, explanation = self.state.get_algorithm_hint()
+        if hint_edge:
+            self.active_hint_edge = hint_edge
+            self.hint_timer = 4.5
+            self.toast_message = explanation
+            self.toast_timer = 4.5
+            self.sound.play("hint")
+            u, v, _ = hint_edge
+            s1, s2 = self.state.stars[u], self.state.stars[v]
+            self.particles.emit_star_burst(s1.x, s1.y, (255, 225, 90), 18)
+            self.particles.emit_star_burst(s2.x, s2.y, (255, 225, 90), 18)
+        else:
+            self.toast_message = explanation
+            self.toast_timer = 3.0
 
     def trigger_kruskal_stepper(self):
         effective_edges = [
@@ -179,6 +214,8 @@ class GameApp:
             self.load_world(self.world_idx)
         elif name == "solver":
             self.trigger_kruskal_stepper()
+        elif name == "hint":
+            self.trigger_hint()
         elif name == "next":
             self.load_world(self.world_idx + 1)
         elif name == "worlds":
@@ -219,6 +256,11 @@ class GameApp:
 
     def update(self, dt):
         self.transition_timer = max(0.0, self.transition_timer - dt)
+        self.particles.update(dt)
+        if self.hint_timer > 0:
+            self.hint_timer = max(0.0, self.hint_timer - dt)
+            if self.hint_timer == 0:
+                self.active_hint_edge = None
         if self.toast_timer > 0:
             self.toast_timer = max(0.0, self.toast_timer - dt)
             if self.toast_timer == 0:
@@ -232,6 +274,9 @@ class GameApp:
         if self.state.is_completed and not self.win_sound_played:
             self.sound.play("win")
             self.win_sound_played = True
+            if not self.victory_burst_done:
+                self.particles.emit_victory_cascade(self.state.star_list, 80)
+                self.victory_burst_done = True
         if not self.state.is_completed and not self.state.is_failed:
             self.state.check_failure()
         if self.state.notification_message:
@@ -328,8 +373,81 @@ class GameApp:
                 pygame.draw.line(screen, (255, 135, 150), (mid[0] - 4, mid[1] - 4), (mid[0] + 4, mid[1] + 4), 2)
                 pygame.draw.line(screen, (255, 135, 150), (mid[0] + 4, mid[1] - 4), (mid[0] - 4, mid[1] + 4), 2)
 
+        if self.active_hint_edge and self.hint_timer > 0:
+            hu, hv, _ = self.active_hint_edge
+            ha, hb = self.state.stars[hu], self.state.stars[hv]
+            hp1, hp2 = (int(ha.x), int(ha.y)), (int(hb.x), int(hb.y))
+            pulse = (math.sin(now * 10) + 1) * 0.5
+            pygame.draw.line(screen, (255, int(180 + pulse * 60), 60), hp1, hp2, 6)
+            pygame.draw.line(screen, (255, 255, 220), hp1, hp2, 2)
+            pygame.draw.circle(screen, (255, 215, 60), hp1, int(15 + pulse * 4), 2)
+            pygame.draw.circle(screen, (255, 215, 60), hp2, int(15 + pulse * 4), 2)
+
+        self.particles.draw(screen)
+
         for star in self.state.star_list:
             CelestialRenderer.draw_star(screen, star, self.selected_star == star.id, now, FONT)
+
+        # Real-time star hover analysis & trajectory preview
+        mouse_pos = pygame.mouse.get_pos()
+        roster_height = min(290, 46 + len(self.state.star_list) * 20 + 66)
+        in_hud = (
+            mouse_pos[1] <= 70 or mouse_pos[1] >= HEIGHT - 85 or
+            pygame.Rect(18, 92, 136, roster_height).collidepoint(mouse_pos) or
+            pygame.Rect(920, 92, 164, 520).collidepoint(mouse_pos)
+        )
+        hovered_star = None
+        if not in_hud and not self.state.is_completed and not self.state.is_failed:
+            hovered_star = next((s for s in self.state.star_list if math.hypot(mouse_pos[0] - s.x, mouse_pos[1] - s.y) <= 24), None)
+
+        if hovered_star:
+            hx, hy = int(hovered_star.x), int(hovered_star.y)
+            ring_r = int(22 + (math.sin(now * 6) + 1) * 2)
+            pygame.draw.circle(screen, (80, 210, 255), (hx, hy), ring_r, 1)
+
+            if self.selected_star is not None and self.selected_star != hovered_star.id:
+                sel_star = self.state.stars[self.selected_star]
+                sp1 = (int(sel_star.x), int(sel_star.y))
+                sp2 = (hx, hy)
+                u, v = min(self.selected_star, hovered_star.id), max(self.selected_star, hovered_star.id)
+                edge_entry = next((e for e in self.state.edges if (e[0] == u and e[1] == v) or (e[0] == v and e[1] == u)), None)
+                if edge_entry:
+                    from dsa.union_find import UnionFind
+                    uf = UnionFind(list(self.state.stars.keys()))
+                    for su, sv, _ in self.state.selected_edges:
+                        uf.union(su, sv)
+                    is_cycle = (uf.find(u) == uf.find(v))
+                    mid = ((sp1[0] + sp2[0]) // 2, (sp1[1] + sp2[1]) // 2)
+                    if is_cycle:
+                        self.draw_dashed_line(screen, (255, 70, 90), sp1, sp2, width=3, dash_length=8, gap_length=5)
+                        warn_pill = SMALL.render("CYCLE REJECTED", True, (255, 130, 140))
+                        pill_rect = warn_pill.get_rect(center=(mid[0], mid[1] - 18))
+                        glass_panel(screen, pill_rect.inflate(14, 8), fill=(30, 8, 14, 235), border=(255, 70, 90), radius=5)
+                        screen.blit(warn_pill, pill_rect)
+                    else:
+                        cost = self.state.compute_edge_cost(u, v, edge_entry[2])
+                        self.draw_dashed_line(screen, (80, 230, 255), sp1, sp2, width=3, dash_length=8, gap_length=5)
+                        cost_pill = SMALL.render(f"LINK COST: {cost}", True, (190, 245, 255))
+                        pill_rect = cost_pill.get_rect(center=(mid[0], mid[1] - 18))
+                        glass_panel(screen, pill_rect.inflate(14, 8), fill=(8, 25, 45, 235), border=(70, 190, 245), radius=5)
+                        screen.blit(cost_pill, pill_rect)
+            elif self.selected_star is None:
+                card_w, card_h = 160, 48
+                card_x = min(WIDTH - 200, max(160, hx - card_w // 2))
+                card_y = max(85, hy - 62)
+                type_colors = {
+                    "POWER": ((100, 220, 255), "POWER: 50% link discount"),
+                    "ENERGY": ((110, 250, 190), "ENERGY: +5 energy refund"),
+                    "UNSTABLE": ((255, 130, 110), "UNSTABLE: Timed corridor"),
+                    "NORMAL": ((180, 215, 245), "BEACON: Standard star"),
+                }
+                t_col, t_desc = type_colors.get(hovered_star.type, ((180, 215, 245), "BEACON"))
+                card_rect = pygame.Rect(card_x, card_y, card_w, card_h)
+                glass_panel(screen, card_rect, fill=(6, 14, 32, 235), border=t_col, radius=8)
+                name_lbl = SMALL.render(f"{hovered_star.name.upper()}", True, (240, 248, 255))
+                screen.blit(name_lbl, (card_x + 8, card_y + 6))
+                role_lbl = pygame.font.SysFont("Segoe UI", 10).render(t_desc, True, t_col)
+                screen.blit(role_lbl, (card_x + 8, card_y + 26))
 
         # Overlay panels follow the compact constellation-dashboard layout.
         self.hud.draw_top_bar(screen, self.state, not self.sound.enabled, not self.sound.music_enabled)
@@ -702,6 +820,8 @@ class GameApp:
                         self.activate_button("redo")
                     elif event.key == pygame.K_k:
                         self.activate_button("solver")
+                    elif event.key == pygame.K_h:
+                        self.activate_button("hint")
                     elif event.key == pygame.K_n:
                         self.activate_button("next")
                     elif event.key == pygame.K_r:
