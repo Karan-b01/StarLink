@@ -101,10 +101,10 @@ class GameApp:
         self.show_intro = True
         self.toast_message = None
         self.toast_timer = 0.0
-        self.play_button = pygame.Rect(WIDTH // 2 - 112, 520, 224, 56)
-        self.intro_sfx_button = pygame.Rect(WIDTH // 2 - 174, 612, 160, 36)
-        self.intro_music_button = pygame.Rect(WIDTH // 2 + 14, 612, 160, 36)
-        self.intro_maximize_button = pygame.Rect(WIDTH // 2 + 202, 612, 160, 36)
+        self.play_button = pygame.Rect(WIDTH // 2 - 140, 466, 280, 50)
+        self.intro_sfx_button = pygame.Rect(WIDTH // 2 - 210, 550, 130, 32)
+        self.intro_music_button = pygame.Rect(WIDTH // 2 - 65, 550, 130, 32)
+        self.intro_maximize_button = pygame.Rect(WIDTH // 2 + 80, 550, 140, 32)
         self.window_maximized = False
         self.sky_notes_open = False
         self.mission_brief_open = False
