@@ -306,6 +306,11 @@ class GameApp:
             pygame.draw.circle(screen, (53, 90, 145), mid, 12, 1)
             label = SMALL.render(str(cost), True, (179, 213, 247) if not selected else (220, 250, 255))
             screen.blit(label, label.get_rect(center=mid))
+            if selected and (min(u, v), max(u, v)) in self.state.decay_counters:
+                remaining = self.state.decay_counters[(min(u, v), max(u, v))]
+                badge_col = (255, 85, 95) if remaining <= 2 else (255, 190, 70)
+                decay_tag = SMALL.render(f"{remaining} turns", True, badge_col)
+                screen.blit(decay_tag, (mid[0] - decay_tag.get_width() // 2, mid[1] - 26))
 
         for step in self.stepper_edges:
             u, v, _, accepted, _ = step

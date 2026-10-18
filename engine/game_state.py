@@ -96,13 +96,12 @@ class GameState:
 
         # 7. Unstable Star countdown logic
         if self.stars[u].type == "UNSTABLE" or self.stars[v].type == "UNSTABLE":
-            # This move creates the link, so give it three *future* successful
-            # connections before it collapses. _tick_decay() runs below for
-            # the current move as well, hence the extra count here.
-            self.decay_counters[(u, v)] = 4
+            # Scale lifetime so larger constellations have enough turns to complete
+            lifetime = max(6, len(self.stars))
+            self.decay_counters[(u, v)] = lifetime + 1
             self.notification_message = (
-                f"Unstable link: {self.stars[u].name} - {self.stars[v].name} "
-                "will collapse after 3 more connections."
+                f"Unstable corridor: {self.stars[u].name} - {self.stars[v].name} "
+                f"will collapse after {lifetime} more connections."
             )
 
         self._tick_decay()
@@ -149,6 +148,7 @@ class GameState:
         for edge in expired:
             del self.decay_counters[edge]
             self.selected_edges = [e for e in self.selected_edges if not (e[0] == edge[0] and e[1] == edge[1])]
+            self.history.undo_stack = [a for a in self.history.undo_stack if not (a['edge'][0] == edge[0] and a['edge'][1] == edge[1])]
             self.status_message = f"An unstable connection ({edge[0]}-{edge[1]}) collapsed!"
             self.notification_message = (
                 f"Link collapsed: {self.stars[edge[0]].name} - {self.stars[edge[1]].name}."
