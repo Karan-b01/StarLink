@@ -27,8 +27,8 @@ for x, y in [(17, 38), (30, 20), (47, 30), (37, 46)]:
 pygame.display.set_icon(logo)
 clock = pygame.time.Clock()
 
-FONT = pygame.font.SysFont("Segoe UI", 15)
-SMALL = pygame.font.SysFont("Segoe UI", 12)
+FONT = pygame.font.SysFont("Segoe UI", 17)
+SMALL = pygame.font.SysFont("Segoe UI", 14)
 MEDIUM = pygame.font.SysFont("Segoe UI", 17, bold=True)
 TITLE = pygame.font.SysFont("Segoe UI", 23, bold=True)
 FONT_HERO = pygame.font.SysFont("Segoe UI", 46, bold=True)

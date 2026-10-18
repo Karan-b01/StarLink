@@ -16,10 +16,10 @@ class UIHud:
         self.height = height
 
         self.font_logo = pygame.font.SysFont("Segoe UI", 22, bold=True)
-        self.font_sub = pygame.font.SysFont("Segoe UI", 11)
-        self.font_section = pygame.font.SysFont("Segoe UI", 14, bold=True)
-        self.font_body = pygame.font.SysFont("Segoe UI", 12)
-        self.font_btn = pygame.font.SysFont("Segoe UI", 14, bold=True)
+        self.font_sub = pygame.font.SysFont("Segoe UI", 12)
+        self.font_section = pygame.font.SysFont("Segoe UI", 15, bold=True)
+        self.font_body = pygame.font.SysFont("Segoe UI", 14)
+        self.font_btn = pygame.font.SysFont("Segoe UI", 15, bold=True)
 
         # Top Right Quick Buttons
         self.btn_sound = pygame.Rect(824, 18, 47, 46)
