@@ -2,12 +2,18 @@ import pygame
 
 class GlassPanel:
     @staticmethod
-    def draw(surface, rect, border_color=(39, 117, 170), bg_color=(5, 12, 27, 226), border_radius=10):
+    def draw(surface, rect, border_color=(39, 117, 170), bg_color=(5, 12, 27, 226), border_radius=12, glow=False):
         x, y, w, h = rect
+        if glow:
+            glow_surf = pygame.Surface((w + 14, h + 14), pygame.SRCALPHA)
+            bc = border_color[:3]
+            pygame.draw.rect(glow_surf, (*bc, 38), (0, 0, w + 14, h + 14), border_radius=border_radius + 4)
+            surface.blit(glow_surf, (x - 7, y - 7))
+
         panel_surf = pygame.Surface((w, h), pygame.SRCALPHA)
         pygame.draw.rect(panel_surf, bg_color, (0, 0, w, h), border_radius=border_radius)
         pygame.draw.rect(panel_surf, border_color, (0, 0, w, h), 1, border_radius=border_radius)
-        pygame.draw.line(panel_surf, (91, 188, 235, 100), (border_radius, 1), (w - border_radius, 1), 1)
+        pygame.draw.line(panel_surf, (140, 220, 255, 80), (border_radius, 1), (w - border_radius, 1), 1)
         surface.blit(panel_surf, (x, y))
 
 class UIHud:
