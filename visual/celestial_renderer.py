@@ -105,12 +105,12 @@ class CelestialRenderer:
         label_x = x + 11
         if label_x + lbl.get_width() + 12 > surface.get_width() - 185:
             label_x = x - lbl.get_width() - 17
-        label_rect = pygame.Rect(label_x, y - 12, lbl.get_width() + 12, 23)
+        label_rect = pygame.Rect(label_x, y - 14, lbl.get_width() + 16, 28)
         chip = pygame.Surface(label_rect.size, pygame.SRCALPHA)
         pygame.draw.rect(chip, (4, 9, 23, 205), chip.get_rect(), border_radius=7)
         pygame.draw.rect(chip, (*halo_c, 100), chip.get_rect(), 1, border_radius=7)
         surface.blit(chip, label_rect.topleft)
-        surface.blit(lbl, (label_rect.x + 6, label_rect.y + 3))
+        surface.blit(lbl, (label_rect.x + 8, label_rect.y + 4))
 
     @staticmethod
     def draw_laser_corridor(surface, p1, p2, cost, font, is_selected=False, is_cycle=False):
