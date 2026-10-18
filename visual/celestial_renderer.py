@@ -91,8 +91,10 @@ class CelestialRenderer:
         flare = 11 + int(pulse * 5)
         pygame.draw.line(surface, core_c, (x - flare, y), (x + flare, y), 2)
         pygame.draw.line(surface, core_c, (x, y - flare), (x, y + flare), 2)
+        pygame.draw.circle(surface, (3, 10, 23), (x, y), 14)
+        pygame.draw.circle(surface, halo_c, (x, y), 12, 2)
         pygame.draw.circle(surface, core_c, (x, y), 9)
-        pygame.draw.circle(surface, (255, 255, 255), (x, y), 4)
+        pygame.draw.circle(surface, (255, 255, 255), (x, y), 5)
 
         if is_selected:
             pygame.draw.circle(surface, (52, 190, 255), (x, y), int(20 + pulse * 5), 2)
