@@ -23,6 +23,9 @@ def dijkstra_shortest_path(vertices, adj_list, source, target):
                 previous[v] = u
                 heapq.heappush(pq, (distances[v], v))
 
+    if distances[target] == float('inf'):
+        return float('inf'), []
+
     path = []
     curr = target
     while curr is not None:

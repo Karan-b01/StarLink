@@ -61,7 +61,11 @@ def test_dijkstra():
     }
     dist, path = dijkstra_shortest_path(vertices, adj, 0, 3)
     assert dist == 4 and path == [0, 1, 2, 3], f"Dijkstra failed: {dist}, {path}"
-    print("[PASS] Dijkstra Shortest Path")
+
+    # Disconnected node test
+    dist_unreachable, path_unreachable = dijkstra_shortest_path([0, 1, 2, 3, 99], adj, 0, 99)
+    assert dist_unreachable == float('inf') and path_unreachable == [], "Dijkstra unreachable node edge case failed!"
+    print("[PASS] Dijkstra Shortest Path (including unreachable target edge case)")
 
 if __name__ == "__main__":
     print("--- Running StarLink DSA Test Suite ---")

@@ -15,8 +15,7 @@ def kruskal_mst(vertices, edges):
     total_cost = 0
 
     for u, v, weight in sorted_edges:
-        if not uf.connected(u, v):
-            uf.union(u, v)
+        if uf.union(u, v):
             mst.append((u, v, weight))
             total_cost += weight
             history.append({'edge': (u, v, weight), 'action': 'ACCEPT', 'reason': 'Minimum valid edge'})
@@ -76,8 +75,7 @@ def kruskal_steps(vertices, edges):
         if edges_accepted >= target_edges:
             break
 
-        if not uf.connected(u, v):
-            uf.union(u, v)
+        if uf.union(u, v):
             edges_accepted += 1
             yield (u, v, weight, True, "Minimum non-cyclic corridor")
         else:

@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.exe
+*.o
+.env
+venv/
+starlink_env/
+.pytest_cache/
