@@ -137,10 +137,10 @@ Let **V** be the number of stars and **E** the number of connections.
 | Sector | Theme | Difficulty |
 |---|---|---|
 | 1 | Alpha Centauri | Easy: learn weighted links and cycle prevention |
-| 2 | Orion Star Nursery | Easy: use Power and Energy stars |
-| 3 | Cygnus Event Horizon | Medium: unstable links and a tighter budget |
+| 2 | Orion Star Nursery | Easy: use Power stars and manage energy |
+| 3 | Cygnus Event Horizon | Medium: compare routes under a tighter budget |
 | 4 | Pleiades Seven Sisters | Medium: more routes and special-star planning |
-| 5 | Andromeda Great Spiral | Hard: larger network and unstable routes |
+| 5 | Andromeda Great Spiral | Hard: larger network and a free wormhole |
 
 ---
 ## 🛠️ Project Structure
@@ -166,7 +166,7 @@ starlink/
 ├── levels/                  # Curated world JSON data
 │   ├── world1.json          # Solar System (Tutorial)
 │   ├── world2.json          # Nebula (Energy & Power Stars)
-│   ├── world3.json          # Black Hole (Unstable Stars & Tight Budget)
+│   ├── world3.json          # Black Hole (Tight Budget)
 │   ├── world4.json          # Pleiades (Medium challenge)
 │   └── world5.json          # Andromeda (Hard challenge)
 ├── test_dsa.py              # Automated test runner for graph algorithms
@@ -265,7 +265,8 @@ It executes five core validations and prints a pass confirmation for each:
 
 ## Limitations and Future Work
 
-- Special stars (Energy, Power, Unstable) can be expanded with richer mechanics.
+- Power stars reduce link costs; free wormholes pre-connect distant stars in selected sectors.
+- Resonance streaks reward Kruskal MST picks with rising chimes.
 - A level editor and online leaderboard would be natural extensions.
 - A hint system based on Prim's algorithm with a min-heap.
 
@@ -278,7 +279,7 @@ It executes five core validations and prints a pass confirmation for each:
 3. Run the Kruskal replay: edges are considered in increasing weight order and accepted only when they join separate components.
 4. Use undo and redo to show how the action stack restores moves and energy.
 5. Finish with a low-cost spanning tree and explain the five-star score against the computed MST baseline.
-6. Visit a later sector to demonstrate Power, Energy, and Unstable star mechanics.
+6. Visit a later sector to demonstrate Power stars, resonance streaks, and free wormholes.
 
 ---
 
