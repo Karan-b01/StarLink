@@ -109,8 +109,8 @@ class UIHud:
             (self.btn_redo, "REDO", False),
             (self.btn_settings, "RESET", False),
             (self.btn_sound, "MUTE" if is_muted else "SFX", is_muted),
-            (self.btn_music, "♫ OFF" if is_music_muted else "♫", is_music_muted),
-            (self.btn_maximize, "⛶", False),
+            (self.btn_music, "MUS OFF" if is_music_muted else "MUS", is_music_muted),
+            (self.btn_maximize, "FULL", False),
         ]
         for rect, label, active in buttons:
             hover = rect.collidepoint(mouse_pos)
@@ -142,8 +142,8 @@ class UIHud:
         pygame.draw.line(surface, (36, 67, 91), (30, y), (142, y), 1)
         legend = [
             ("POWER: half cost", (85, 207, 255)),
-            ("ENERGY: +5 reserve", (89, 232, 183)),
-            ("UNSTABLE: timed link", (255, 119, 112)),
+            ("WORMHOLE: free link", (89, 232, 183)),
+            ("RESONANCE: MST streak", (255, 196, 105)),
         ]
         for label, color in legend:
             surface.blit(self.font_sub.render(self.fit_text(label, self.font_sub, 112), True, color), (30, y + 5))
@@ -167,8 +167,7 @@ class UIHud:
             "Betelgeuse": (255, 111, 85),
         }
         type_colors = {
-            "POWER": (85, 207, 255), "ENERGY": (89, 232, 183),
-            "UNSTABLE": (255, 119, 112), "NORMAL": (173, 206, 246),
+            "POWER": (85, 207, 255), "NORMAL": (173, 206, 246),
         }
         return named.get(name, type_colors.get(star_type, (109, 208, 246)))
 
@@ -179,14 +178,17 @@ class UIHud:
 
         surface.blit(self.font_section.render("KRUSKAL", True, (121, 204, 239)), (932, 104))
         surface.blit(self.font_sub.render("EDGES  /  LOWEST WEIGHT", True, (115, 153, 183)), (932, 125))
-        pygame.draw.line(surface, (36, 67, 91), (932, 145), (1072, 145), 1)
+        streak = self.font_sub.render(f"RESONANCE  x{state.resonance_streak}", True,
+                                      (94, 232, 208) if state.resonance_streak else (115, 153, 183))
+        surface.blit(streak, (932, 142))
+        pygame.draw.line(surface, (36, 67, 91), (932, 158), (1072, 158), 1)
 
         sorted_edges = sorted(
             state.edges,
             key=lambda edge: state.compute_edge_cost(edge[0], edge[1], edge[2]),
         )
-        y = 153
-        for idx, (u, v, w) in enumerate(sorted_edges[:7]):
+        y = 163
+        for idx, (u, v, w) in enumerate(sorted_edges[:6]):
             u_name = state.stars[u].name
             v_name = state.stars[v].name
             display_weight = state.compute_edge_cost(u, v, w)
@@ -215,10 +217,16 @@ class UIHud:
         surface.blit(self.font_sub.render("RESTORED LINKS", True, (121, 204, 239)), (932, y + 10))
 
         sel_y = y + 30
-        for u, v, w in state.selected_edges[:4]:
+        visible_links = state.selected_edges[-3:]
+        if len(state.selected_edges) > len(visible_links):
+            more = self.font_sub.render(f"+{len(state.selected_edges) - len(visible_links)} earlier", True, (115, 153, 183))
+            surface.blit(more, (932, sel_y))
+            sel_y += 16
+        for u, v, w in visible_links:
             u_name = state.stars[u].name
             v_name = state.stars[v].name
-            link_label = self.fit_text(f"⚡{w}  {u_name} - {v_name}", self.font_sub, 140)
+            is_free = (u, v) in state.wormhole_pairs
+            link_label = self.fit_text(f"{'FREE' if is_free else str(w)}  {u_name} - {v_name}", self.font_sub, 140)
             surface.blit(self.font_sub.render(link_label, True, (116, 224, 197)), (932, sel_y))
             sel_y += 17
 
@@ -229,18 +237,20 @@ class UIHud:
         pygame.draw.line(surface, (36, 67, 91), (932, 470), (1072, 470), 1)
 
         controls = [
-            ("CLICK TWO STARS", "Create a connection"),
-            ("H", "Algorithm Hint (MST Cut)"),
-            ("Z   /   Y", "Undo   /   redo"),
-            ("K", "Animate Kruskal"),
-            ("M   /   P", "Sound effects / music"),
+            ("CLICK", "Connect stars"),
+            ("H", "MST hint"),
+            ("Z / Y", "Undo / redo"),
+            ("K", "Kruskal replay"),
+            ("M / P", "SFX / music"),
             ("R", "Restart sector"),
         ]
-        y = 472
+        y = 478
         for key_text, desc in controls:
-            surface.blit(self.font_body.render(key_text, True, (207, 227, 243)), (932, y))
-            surface.blit(self.font_sub.render(desc, True, (132, 165, 191)), (932, y + 12))
-            y += 24
+            key = self.font_sub.render(key_text, True, (207, 227, 243))
+            label = self.font_sub.render(self.fit_text(desc, self.font_sub, 88), True, (132, 165, 191))
+            surface.blit(key, (932, y))
+            surface.blit(label, (982, y))
+            y += 20
 
     def draw_bottom_dock(self, surface, state, is_maximized=False):
         """Draws the bottom status capsule and action buttons."""

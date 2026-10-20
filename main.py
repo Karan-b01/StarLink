@@ -152,7 +152,10 @@ class GameApp:
                 self.sound.play("cycle")
                 self.particles.emit_cycle_rejection((s1.x, s1.y), (s2.x, s2.y), 26)
             elif ok:
-                self.sound.play("link")
+                if (min(u, v), max(u, v)) in self.state.mst_pairs:
+                    self.sound.play_resonance(self.state.resonance_streak)
+                else:
+                    self.sound.play("cycle")
                 self.active_plasma_beams.append({
                     'p1': (s1.x, s1.y),
                     'p2': (s2.x, s2.y),
@@ -183,7 +186,7 @@ class GameApp:
             self.toast_timer = 3.0
 
     def trigger_kruskal_stepper(self):
-        effective_edges = [
+        effective_edges = [(u, v, 0) for u, v in self.state.wormhole_pairs] + [
             (u, v, self.state.compute_edge_cost(u, v, weight))
             for u, v, weight in self.state.edges
         ]
@@ -365,18 +368,10 @@ class GameApp:
                 pygame.draw.line(screen, (255, 65, 95), p1, p2, 5)
                 pygame.draw.line(screen, (255, 210, 220), p1, p2, 1)
             elif selected:
-                remaining = self.state.decay_counters.get((min(u, v), max(u, v)))
-                warning = remaining == 1
-                if warning:
-                    flash = (math.sin(now * 12) + 1) * .5
-                    core = (255, int(105 + flash * 110), 104)
-                    pygame.draw.line(screen, (112, 30, 53), p1, p2, 8)
-                    pygame.draw.line(screen, core, p1, p2, 4)
-                else:
-                    pygame.draw.line(screen, (13, 74, 150), p1, p2, 8)
-                    pygame.draw.line(screen, (45, 174, 245), p1, p2, 4)
-                    shimmer = (math.sin(now * 4 + u + v) + 1) * .5
-                    pygame.draw.line(screen, (int(130 + shimmer * 100), 245, 255), p1, p2, 1)
+                pygame.draw.line(screen, (13, 74, 150), p1, p2, 8)
+                pygame.draw.line(screen, (45, 174, 245), p1, p2, 4)
+                shimmer = (math.sin(now * 4 + u + v) + 1) * .5
+                pygame.draw.line(screen, (int(130 + shimmer * 100), 245, 255), p1, p2, 1)
                 # A traveling pulse makes restored connections feel powered.
                 travel = (now * .42 + (u + v) * .173) % 1.0
                 spark = (int(p1[0] + (p2[0] - p1[0]) * travel),
@@ -390,11 +385,13 @@ class GameApp:
             pygame.draw.circle(screen, (53, 90, 145), mid, 12, 1)
             label = SMALL.render(str(cost), True, (179, 213, 247) if not selected else (220, 250, 255))
             screen.blit(label, label.get_rect(center=mid))
-            if selected and (min(u, v), max(u, v)) in self.state.decay_counters:
-                remaining = self.state.decay_counters[(min(u, v), max(u, v))]
-                badge_col = (255, 85, 95) if remaining <= 2 else (255, 190, 70)
-                decay_tag = SMALL.render(f"{remaining} turns", True, badge_col)
-                screen.blit(decay_tag, (mid[0] - decay_tag.get_width() // 2, mid[1] - 26))
+        for u, v in self.state.wormhole_pairs:
+            a, b = self.state.stars[u], self.state.stars[v]
+            p1, p2 = (int(a.x), int(a.y)), (int(b.x), int(b.y))
+            self.draw_dashed_line(screen, (82, 239, 204), p1, p2, width=3, dash_length=10, gap_length=7)
+            mid = ((p1[0] + p2[0]) // 2, (p1[1] + p2[1]) // 2)
+            tag = SMALL.render("FREE", True, (126, 255, 220))
+            screen.blit(tag, tag.get_rect(center=mid))
 
         for step in self.stepper_edges:
             u, v, _, accepted, _ = step
@@ -502,11 +499,11 @@ class GameApp:
             elif self.selected_star is None:
                 card_w, card_h = 160, 48
                 card_x = min(WIDTH - 200, max(160, hx - card_w // 2))
+                if card_x + card_w > 920:
+                    card_x = max(160, hx - card_w - 28)
                 card_y = max(85, hy - 62)
                 type_colors = {
                     "POWER": ((100, 220, 255), "POWER: 50% link discount"),
-                    "ENERGY": ((110, 250, 190), "ENERGY: +5 energy refund"),
-                    "UNSTABLE": ((255, 130, 110), "UNSTABLE: Timed corridor"),
                     "NORMAL": ((180, 215, 245), "BEACON: Standard star"),
                 }
                 t_col, t_desc = type_colors.get(hovered_star.type, ((180, 215, 245), "BEACON"))
@@ -516,6 +513,10 @@ class GameApp:
                 screen.blit(name_lbl, (card_x + 8, card_y + 6))
                 role_lbl = pygame.font.SysFont("Segoe UI", 10).render(t_desc, True, t_col)
                 screen.blit(role_lbl, (card_x + 8, card_y + 26))
+
+        ghost_elapsed = self.starfield.elapsed - self.result_started_at if self.state.is_completed else -1
+        if self.state.is_completed and 0 <= ghost_elapsed < 3.2:
+            self._draw_ghost_replay(ghost_elapsed)
 
         # Overlay panels follow the compact constellation-dashboard layout.
         self.hud.draw_top_bar(screen, self.state, not self.sound.enabled, not self.sound.music_enabled, display_energy=self.display_energy)
@@ -527,14 +528,14 @@ class GameApp:
         if self.toast_message and self.toast_timer > 0:
             toast_w = min(620, max(330, FONT.size(self.toast_message)[0] + 48))
             toast_rect = pygame.Rect((WIDTH - toast_w) // 2, HEIGHT - 112, toast_w, 42)
-            warning = "Warning:" in self.toast_message or "collapsed" in self.toast_message
+            warning = "Warning:" in self.toast_message
             accent = (255, 133, 116) if warning else (255, 196, 91)
             glass_panel(screen, toast_rect, (12, 20, 39, 242), accent, 10)
             pygame.draw.circle(screen, accent, (toast_rect.x + 18, toast_rect.centery), 4)
             toast_text = SMALL.render(self.toast_message, True, (232, 241, 250))
             screen.blit(toast_text, toast_text.get_rect(midleft=(toast_rect.x + 31, toast_rect.centery)))
 
-        if self.state.is_completed or self.state.is_failed:
+        if self.state.is_failed or (self.state.is_completed and ghost_elapsed >= 3.2):
             self._draw_result_modal()
         if self.sky_notes_open:
             self._draw_sky_notes()
@@ -626,15 +627,14 @@ class GameApp:
         strip_rect = pygame.Rect(120, 412, WIDTH - 240, 36)
         GlassPanel.draw(screen, strip_rect, border_color=(45, 100, 160), bg_color=(8, 18, 38, 220), border_radius=18)
         properties = [
-            (210, "⚡ POWER STAR: -50% link cost", (85, 205, 255)),
-            (530, "🔋 ENERGY STAR: +5 reserve boost", (85, 235, 175)),
-            (845, "⏳ UNSTABLE STAR: 6-turn link decay", (255, 130, 115)),
+            (230, "POWER: HALVES LINK COST", (85, 205, 255)),
+            (550, "MST PICKS: RISING CHIMES", (85, 235, 175)),
+            (850, "WORMHOLE: FREE LINK", (255, 196, 105)),
         ]
         for px, ptext, pcol in properties:
-            pygame.draw.circle(screen, pcol, (px - 8, 430), 4)
             ptxt = SMALL.render(ptext, True, (225, 240, 255))
-            screen.blit(ptxt, ptxt.get_rect(center=(px + ptxt.get_width() // 2, 430)))
-
+            pygame.draw.circle(screen, pcol, (px - ptxt.get_width() // 2 - 10, 430), 4)
+            screen.blit(ptxt, ptxt.get_rect(center=(px, 430)))
         # 6. Primary Action Play Button
         hover = self.play_button.collidepoint(pygame.mouse.get_pos())
         p_pulse = (math.sin(now * 3.5) + 1) * 0.5
@@ -737,6 +737,25 @@ class GameApp:
         next_label = "REPLAY CAMPAIGN" if success and final_sector else "NEXT WORLD  >"
         self.draw_action_button(self.result_buttons["next"], next_label, True)
 
+    def _draw_ghost_replay(self, elapsed):
+        """Replay Kruskal as a faint route over the finished player network."""
+        replay_count = min(len(self.state.mst_edges), int(elapsed * len(self.state.mst_edges) / 3.0) + 1)
+        replay = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+        selected_pairs = {(min(u, v), max(u, v)) for u, v, _ in self.state.selected_edges}
+        for u, v, _ in self.state.mst_edges[:replay_count]:
+            a, b = self.state.stars[u], self.state.stars[v]
+            color = (85, 236, 220, 150) if (min(u, v), max(u, v)) in selected_pairs else (125, 208, 255, 190)
+            pygame.draw.line(replay, color, (int(a.x), int(a.y)), (int(b.x), int(b.y)), 5)
+        for u, v, _ in self.state.selected_edges:
+            if (min(u, v), max(u, v)) not in self.state.mst_pairs:
+                a, b = self.state.stars[u], self.state.stars[v]
+                pygame.draw.line(replay, (255, 174, 83, 190), (int(a.x), int(a.y)), (int(b.x), int(b.y)), 5)
+        screen.blit(replay, (0, 0))
+        label = SMALL.render("KRUSKAL GHOST  |  CYAN: optimal route  |  AMBER: alternate link", True, (205, 235, 250))
+        card = label.get_rect(center=(WIDTH // 2, 88)).inflate(24, 12)
+        glass_panel(screen, card, (5, 16, 34, 230), (73, 178, 220), 8)
+        screen.blit(label, label.get_rect(center=card.center))
+
     def _draw_sky_notes(self):
         veil = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
         veil.fill((1, 4, 15, 232))
@@ -757,8 +776,6 @@ class GameApp:
         role = {
             "NORMAL": "Standard link node",
             "POWER": "Halves link cost",
-            "ENERGY": "Restores up to 5 energy",
-            "UNSTABLE": "Link expires after 3 moves",
         }
         for i, star in enumerate(self.state.star_list):
             y = 194 + i * 42
@@ -816,7 +833,9 @@ class GameApp:
         rules = [
             "Link all stars through listed corridors. Union-Find rejects any link that creates a cycle.",
             "Spend carefully: the final network is rated against this sector's minimum-cost spanning tree.",
-            "POWER halves a link cost   •   ENERGY restores up to 5   •   UNSTABLE links expire after 3 moves.",
+            "POWER stars halve link cost. Energy comes from the shared sector reserve.",
+            "Choose Kruskal MST links consecutively for rising chimes; a wrong pick resets the streak.",
+            "Wormholes are free links active at launch and count as pre-connected stars.",
         ]
         for i, line in enumerate(rules):
             y = objective_y + 27 + i * 22

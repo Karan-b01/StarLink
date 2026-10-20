@@ -60,10 +60,6 @@ class CelestialRenderer:
         core_c, halo_c, _ = cls.STAR_STYLES.get(star.name, ((235, 247, 255), (91, 163, 236), False))
         if star.type == "POWER":
             core_c, halo_c = (151, 239, 255), (41, 166, 255)
-        elif star.type == "ENERGY":
-            core_c, halo_c = (169, 255, 210), (39, 208, 153)
-        elif star.type == "UNSTABLE":
-            core_c, halo_c = (255, 183, 150), (255, 81, 90)
         x, y = int(star.x), int(star.y)
         pulse = (math.sin(now_sec * 3.0 + star.id) + 1) * .5
 
