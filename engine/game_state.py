@@ -15,22 +15,22 @@ class GameState:
         self.stars = {s.id: s for s in level_data["stars"]}
         self.star_list = level_data["stars"]
         self.edges = level_data["edges"]
+        self.wormhole_pairs = [tuple(sorted(pair)) for pair in level_data.get("wormhole_pairs", [])]
         
         self.max_energy = level_data["energy_budget"]
         self.energy = self.max_energy
-        self.selected_edges = []
+        self.selected_edges = [(u, v, 0) for u, v in self.wormhole_pairs]
         self.history = ActionHistory()
-        
-        # Turn tracker for Unstable Stars (maps edge (u, v) -> remaining turns)
-        self.decay_counters = {}
+        self.resonance_streak = 0
         
         # Precompute Kruskal's MST baseline
         vertex_ids = list(self.stars.keys())
-        effective_edges = [
+        effective_edges = [(u, v, 0) for u, v in self.wormhole_pairs] + [
             (u, v, self.compute_edge_cost(u, v, weight))
             for u, v, weight in self.edges
         ]
         self.mst_edges, self.optimal_cost, self.solver_history = kruskal_mst(vertex_ids, effective_edges)
+        self.mst_pairs = {(min(u, v), max(u, v)) for u, v, _ in self.mst_edges}
         
         # Status / Feedback
         self.status_message = "Select stars or edges to restore the constellation."
@@ -61,6 +61,7 @@ class GameState:
         # 3. Find edge base cost
         edge_entry = next((e for e in self.edges if (e[0] == u and e[1] == v) or (e[0] == v and e[1] == u)), None)
         if not edge_entry:
+            self.resonance_streak = 0
             return False, "No valid corridor between these stars."
 
         base_cost = edge_entry[2]
@@ -72,6 +73,7 @@ class GameState:
             uf.union(su, sv)
 
         if not uf.union(u, v):
+            self.resonance_streak = 0
             self.cycle_edge_flash = (u, v)
             self.status_message = f"Cycle Detected! Union-Find rejected link ({u}-{v})."
             return False, "Cycle Detected"
@@ -81,30 +83,21 @@ class GameState:
             self.status_message = f"Insufficient Energy! Requires {effective_cost}."
             return False, "Out of Energy"
 
-        # 6. Apply Special Star modifiers
-        refund = 0
-        if self.stars[u].type == "ENERGY" or self.stars[v].type == "ENERGY":
-            refund = 5  # Energy Star bonus
-
-        net_deduction = effective_cost - refund
-        self.energy = min(self.max_energy, self.energy - net_deduction)
+        previous_streak = self.resonance_streak
+        previous_energy = self.energy
+        self.energy -= effective_cost
+        actual_deduction = previous_energy - self.energy
 
         added_edge = (u, v, effective_cost)
         self.selected_edges.append(added_edge)
-        self.history.record_action(added_edge, net_deduction)
-        self.status_message = f"Linked Star {u} to Star {v} (Cost: {effective_cost}, Refund: {refund})."
+        self.history.record_action(added_edge, actual_deduction, {"previous_streak": previous_streak})
+        self.status_message = f"Linked Star {u} to Star {v} (Cost: {effective_cost})."
 
-        # 7. Unstable Star countdown logic
-        if self.stars[u].type == "UNSTABLE" or self.stars[v].type == "UNSTABLE":
-            # Scale lifetime so larger constellations have enough turns to complete
-            lifetime = max(6, len(self.stars))
-            self.decay_counters[(u, v)] = lifetime + 1
-            self.notification_message = (
-                f"Unstable corridor: {self.stars[u].name} - {self.stars[v].name} "
-                f"will collapse after {lifetime} more connections."
-            )
+        if (u, v) in self.mst_pairs:
+            self.resonance_streak += 1
+        else:
+            self.resonance_streak = 0
 
-        self._tick_decay()
         self._check_victory()
         return True, "Success"
 
@@ -130,29 +123,6 @@ class GameState:
             self.status_message = "Signal lost. Not enough energy to restore the constellation."
             return True
         return False
-
-    def _tick_decay(self):
-        """Decrements turns on unstable edges and removes expired links."""
-        expired = []
-        for edge in list(self.decay_counters.keys()):
-            self.decay_counters[edge] -= 1
-            if self.decay_counters[edge] == 1:
-                u, v = edge
-                self.notification_message = (
-                    f"Warning: {self.stars[u].name} - {self.stars[v].name} "
-                    "collapses after your next connection!"
-                )
-            if self.decay_counters[edge] <= 0:
-                expired.append(edge)
-
-        for edge in expired:
-            del self.decay_counters[edge]
-            self.selected_edges = [e for e in self.selected_edges if not (e[0] == edge[0] and e[1] == edge[1])]
-            self.history.undo_stack = [a for a in self.history.undo_stack if not (a['edge'][0] == edge[0] and a['edge'][1] == edge[1])]
-            self.status_message = f"An unstable connection ({edge[0]}-{edge[1]}) collapsed!"
-            self.notification_message = (
-                f"Link collapsed: {self.stars[edge[0]].name} - {self.stars[edge[1]].name}."
-            )
 
     def _check_victory(self):
         """Uses BFS to check if the full graph is spanning and connected."""
@@ -185,7 +155,7 @@ class GameState:
             edge = action["edge"]
             self.selected_edges = [e for e in self.selected_edges if not (e[0] == edge[0] and e[1] == edge[1])]
             self.energy = min(self.max_energy, self.energy + action["cost"])
-            self.decay_counters.pop((edge[0], edge[1]), None)
+            self.resonance_streak = action.get("meta", {}).get("previous_streak", 0)
             self.status_message = f"Undid link ({edge[0]}, {edge[1]}). Energy restored."
             self.is_completed = False
 
@@ -195,6 +165,9 @@ class GameState:
             edge = action["edge"]
             self.selected_edges.append(edge)
             self.energy -= action["cost"]
+            u, v, _ = edge
+            previous_streak = action.get("meta", {}).get("previous_streak", 0)
+            self.resonance_streak = previous_streak + 1 if (min(u, v), max(u, v)) in self.mst_pairs else 0
             self.status_message = f"Redid link ({edge[0]}, {edge[1]})."
             self._check_victory()
 
@@ -215,7 +188,7 @@ class GameState:
             key=lambda e: self.compute_edge_cost(e[0], e[1], e[2])
         )
 
-        mst_pairs = {(min(u, v), max(u, v)) for u, v, _ in self.mst_edges}
+        mst_pairs = self.mst_pairs
         for u, v, base_cost in sorted_candidates:
             a, b = min(u, v), max(u, v)
             if any(e[0] == a and e[1] == b for e in self.selected_edges):
