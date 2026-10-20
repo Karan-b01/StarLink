@@ -9,8 +9,8 @@
     {"id": 1, "name": "Algol", "x": 340, "y": 175, "type": "POWER"},
     {"id": 2, "name": "Atik", "x": 535, "y": 215, "type": "NORMAL"},
     {"id": 3, "name": "Menkib", "x": 760, "y": 170, "type": "NORMAL"},
-    {"id": 4, "name": "Misam", "x": 865, "y": 350, "type": "ENERGY"},
-    {"id": 5, "name": "Gorgonea", "x": 700, "y": 520, "type": "UNSTABLE"},
+    {"id": 4, "name": "Misam", "x": 865, "y": 350, "type": "NORMAL"},
+    {"id": 5, "name": "Gorgonea", "x": 700, "y": 520, "type": "NORMAL"},
     {"id": 6, "name": "Zeta Persei", "x": 455, "y": 520, "type": "NORMAL"},
     {"id": 7, "name": "Xi Persei", "x": 225, "y": 500, "type": "NORMAL"}
   ],

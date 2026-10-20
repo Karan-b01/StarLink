@@ -2,15 +2,15 @@
   "world_id": 8,
   "name": "Carina Keel - Nebula Crossing",
   "difficulty": "MEDIUM",
-  "story": "Dust clouds are breaking the Carina routes apart. Reconnect the long-range beacons while avoiding the unstable relay.",
+  "story": "Dust clouds obscure the Carina routes. Reconnect the long-range beacons through the dark field.",
   "energy_budget": 31,
   "stars": [
     {"id": 0, "name": "Canopus", "x": 175, "y": 330, "type": "NORMAL"},
     {"id": 1, "name": "Miaplacidus", "x": 315, "y": 185, "type": "POWER"},
     {"id": 2, "name": "Avior", "x": 535, "y": 160, "type": "NORMAL"},
-    {"id": 3, "name": "Aspidiske", "x": 770, "y": 220, "type": "UNSTABLE"},
+    {"id": 3, "name": "Aspidiske", "x": 770, "y": 220, "type": "NORMAL"},
     {"id": 4, "name": "Tureis", "x": 850, "y": 405, "type": "NORMAL"},
-    {"id": 5, "name": "Theta Carinae", "x": 665, "y": 535, "type": "ENERGY"},
+    {"id": 5, "name": "Theta Carinae", "x": 665, "y": 535, "type": "NORMAL"},
     {"id": 6, "name": "Omega Carinae", "x": 385, "y": 500, "type": "NORMAL"}
   ],
   "edges": [

@@ -9,7 +9,7 @@
     {"id": 1, "name": "Alnilam", "x": 390, "y": 180, "type": "POWER"},
     {"id": 2, "name": "Mintaka", "x": 650, "y": 230, "type": "NORMAL"},
     {"id": 3, "name": "Saiph", "x": 270, "y": 500, "type": "NORMAL"},
-    {"id": 4, "name": "Bellatrix", "x": 590, "y": 500, "type": "ENERGY"},
+    {"id": 4, "name": "Bellatrix", "x": 590, "y": 500, "type": "NORMAL"},
     {"id": 5, "name": "Meissa", "x": 820, "y": 350, "type": "NORMAL"}
   ],
   "edges": [

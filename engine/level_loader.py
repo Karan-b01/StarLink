@@ -9,7 +9,7 @@ class StarNode:
         self.name = name
         self.x = x
         self.y = y
-        self.type = star_type  # NORMAL, ENERGY, POWER, UNSTABLE
+        self.type = star_type  # NORMAL or POWER
 
     def to_dict(self):
         return {
@@ -45,6 +45,7 @@ def load_level_from_json(filepath):
         "story": data.get("story", ""),
         "difficulty": data.get("difficulty", "MEDIUM"),
         "energy_budget": data["energy_budget"],
+        "wormhole_pairs": [tuple(pair) for pair in data.get("wormhole_pairs", [])],
         "stars": stars,
         "edges": edges
     }
@@ -55,7 +56,7 @@ def generate_procedural_level(num_stars=7, width=950, height=580):
     Seeds special stars based on weighted probabilities.
     """
     stars = []
-    types = ["NORMAL", "NORMAL", "POWER", "ENERGY", "UNSTABLE"]
+    types = ["NORMAL", "NORMAL", "NORMAL", "POWER"]
     for i in range(num_stars):
         x = random.randint(140, width - 100)
         y = random.randint(140, height - 100)
