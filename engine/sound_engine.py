@@ -152,3 +152,10 @@ class SoundEngine:
     def play(self, sound_name):
         if self.enabled and sound_name in self.sounds:
             self.sounds[sound_name].play()
+
+    def play_resonance(self, streak):
+        """Play a chime that rises one semitone with each correct MST pick."""
+        if not self.enabled:
+            return
+        frequency = 440.0 * (2 ** (min(max(0, streak - 1), 18) / 12))
+        self._make_tone(frequency, 0.24).play()
