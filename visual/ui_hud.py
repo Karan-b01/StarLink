@@ -31,9 +31,7 @@ class UIHud:
         self.btn_undo = pygame.Rect(752, 18, 54, 38)
         self.btn_redo = pygame.Rect(812, 18, 54, 38)
         self.btn_settings = pygame.Rect(872, 18, 60, 38)   # RESET
-        self.btn_sound = pygame.Rect(938, 18, 44, 38)      # SFX / Sound
-        self.btn_music = pygame.Rect(988, 18, 44, 38)      # Music
-        self.btn_maximize = pygame.Rect(1038, 18, 44, 38)   # ⛶ Fullscreen / Maximize
+        self.btn_maximize = pygame.Rect(988, 18, 44, 38)
 
         # Bottom Bar Navigation Buttons (matching reference image)
         self.btn_brief = pygame.Rect(18, height - 58, 240, 42)
@@ -51,7 +49,7 @@ class UIHud:
             for index in range(10)
         ]
 
-    def draw_top_bar(self, surface, state, is_muted, is_music_muted=False, display_energy=None):
+    def draw_top_bar(self, surface, state, display_energy=None):
         # 1. StarLink Logo Capsule
         GlassPanel.draw(surface, (18, 16, 175, 52), border_color=(45, 110, 180), border_radius=14)
         cx, cy = 42, 42
@@ -108,8 +106,6 @@ class UIHud:
             (self.btn_undo, "UNDO", False),
             (self.btn_redo, "REDO", False),
             (self.btn_settings, "RESET", False),
-            (self.btn_sound, "MUTE" if is_muted else "SFX", is_muted),
-            (self.btn_music, "MUS OFF" if is_music_muted else "MUS", is_music_muted),
             (self.btn_maximize, "FULL", False),
         ]
         for rect, label, active in buttons:
@@ -229,28 +225,6 @@ class UIHud:
             link_label = self.fit_text(f"{'FREE' if is_free else str(w)}  {u_name} - {v_name}", self.font_sub, 140)
             surface.blit(self.font_sub.render(link_label, True, (116, 224, 197)), (932, sel_y))
             sel_y += 17
-
-    def draw_controls_panel(self, surface):
-        """Draws the controls guide panel."""
-        GlassPanel.draw(surface, (920, 434, 164, 178))
-        surface.blit(self.font_section.render("FLIGHT CONTROLS", True, (121, 204, 239)), (932, 446))
-        pygame.draw.line(surface, (36, 67, 91), (932, 470), (1072, 470), 1)
-
-        controls = [
-            ("CLICK", "Connect stars"),
-            ("H", "MST hint"),
-            ("Z / Y", "Undo / redo"),
-            ("K", "Kruskal replay"),
-            ("M / P", "SFX / music"),
-            ("R", "Restart sector"),
-        ]
-        y = 478
-        for key_text, desc in controls:
-            key = self.font_sub.render(key_text, True, (207, 227, 243))
-            label = self.font_sub.render(self.fit_text(desc, self.font_sub, 88), True, (132, 165, 191))
-            surface.blit(key, (932, y))
-            surface.blit(label, (982, y))
-            y += 20
 
     def draw_bottom_dock(self, surface, state, is_maximized=False):
         """Draws the bottom status capsule and action buttons."""

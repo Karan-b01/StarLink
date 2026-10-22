@@ -75,8 +75,6 @@ class GameApp:
         ]
         self.world_idx = 0
         self.buttons = {
-            "sound": self.hud.btn_sound,
-            "music": self.hud.btn_music,
             "undo": self.hud.btn_undo,
             "redo": self.hud.btn_redo,
             "reset": self.hud.btn_settings,
@@ -101,10 +99,7 @@ class GameApp:
         self.show_intro = True
         self.toast_message = None
         self.toast_timer = 0.0
-        self.play_button = pygame.Rect(WIDTH // 2 - 140, 466, 280, 50)
-        self.intro_sfx_button = pygame.Rect(WIDTH // 2 - 210, 550, 130, 32)
-        self.intro_music_button = pygame.Rect(WIDTH // 2 - 65, 550, 130, 32)
-        self.intro_maximize_button = pygame.Rect(WIDTH // 2 + 80, 550, 140, 32)
+        self.play_button = pygame.Rect(WIDTH // 2 - 160, 466, 320, 54)
         self.window_maximized = False
         self.sky_notes_open = False
         self.mission_brief_open = False
@@ -213,11 +208,7 @@ class GameApp:
             offset = finish + gap_length
 
     def activate_button(self, name):
-        if name == "sound":
-            self.sound.enabled = not self.sound.enabled
-        elif name == "music":
-            self.sound.set_music(not self.sound.music_enabled)
-        elif name == "undo":
+        if name == "undo":
             self.state.undo()
             self.sound.play("undo")
         elif name == "redo":
@@ -519,10 +510,9 @@ class GameApp:
             self._draw_ghost_replay(ghost_elapsed)
 
         # Overlay panels follow the compact constellation-dashboard layout.
-        self.hud.draw_top_bar(screen, self.state, not self.sound.enabled, not self.sound.music_enabled, display_energy=self.display_energy)
+        self.hud.draw_top_bar(screen, self.state, display_energy=self.display_energy)
         self.hud.draw_left_stars_panel(screen, self.state.star_list)
         self.hud.draw_kruskal_inspector(screen, self.state)
-        self.hud.draw_controls_panel(screen)
         self.hud.draw_bottom_dock(screen, self.state, self.window_maximized)
 
         if self.toast_message and self.toast_timer > 0:
@@ -582,25 +572,32 @@ class GameApp:
         screen.blit(sub2, sub2.get_rect(center=(cx, 183)))
 
         # 4. Three Glassmorphic Feature Cards
-        card_w, card_h = 296, 192
+        card_gap = 26
+        card_margin = 30
+        card_w = (main_box.width - card_margin * 2 - card_gap * 2) // 3
+        card_h = 192
+        card_xs = [
+            main_box.left + card_margin + index * (card_w + card_gap)
+            for index in range(3)
+        ]
         cards_data = [
-            (75, "01", "GRID TOPOLOGY", (75, 210, 255), [
+            ("01", "GRID TOPOLOGY", (75, 210, 255), [
                 "Click two stars joined by an energy corridor to forge a laser connection.",
                 "Corridors consume stellar energy. Connect every star into one network without exhausting reserve.",
                 "Target: Full sector connectivity.",
             ]),
-            (402, "02", "CYCLE PREVENTION", (165, 145, 255), [
+            ("02", "CYCLE PREVENTION", (165, 145, 255), [
                 "Closed loops cause harmonic feedback and are rejected by stellar physics.",
                 "Union-Find (Disjoint Set) tracks connected components in real time to instantly block cycles.",
                 "Rule: No closed circuits.",
             ]),
-            (729, "03", "KRUSKAL OPTIMUM", (75, 230, 160), [
+            ("03", "KRUSKAL OPTIMUM", (75, 230, 160), [
                 "Kruskal's algorithm computes the theoretical minimum energy requirement.",
                 "Match the optimal spanning tree weight to earn 5-Star efficiency ratings.",
                 "Benchmark: Greedy edge selection.",
             ]),
         ]
-        for x, num, heading, accent, paragraphs in cards_data:
+        for x, (num, heading, accent, paragraphs) in zip(card_xs, cards_data):
             c_rect = pygame.Rect(x, 205, card_w, card_h)
             GlassPanel.draw(screen, c_rect, border_color=accent, bg_color=(8, 18, 38, 220), border_radius=14, glow=False)
 
@@ -624,12 +621,12 @@ class GameApp:
                 text_y += 4
 
         # 5. Stellar Property Pill Strip
-        strip_rect = pygame.Rect(120, 412, WIDTH - 240, 36)
+        strip_rect = pygame.Rect(main_box.left + 75, 412, main_box.width - 150, 36)
         GlassPanel.draw(screen, strip_rect, border_color=(45, 100, 160), bg_color=(8, 18, 38, 220), border_radius=18)
         properties = [
-            (230, "POWER: HALVES LINK COST", (85, 205, 255)),
-            (550, "MST PICKS: RISING CHIMES", (85, 235, 175)),
-            (850, "WORMHOLE: FREE LINK", (255, 196, 105)),
+            (strip_rect.left + strip_rect.width // 6, "POWER: HALVES LINK COST", (85, 205, 255)),
+            (strip_rect.centerx, "MST PICKS: RISING CHIMES", (85, 235, 175)),
+            (strip_rect.left + strip_rect.width * 5 // 6, "WORMHOLE: FREE LINK", (255, 196, 105)),
         ]
         for px, ptext, pcol in properties:
             ptxt = SMALL.render(ptext, True, (225, 240, 255))
@@ -641,20 +638,12 @@ class GameApp:
         p_bg = (18, 140, 220) if hover else (12, int(90 + p_pulse * 25), 160)
         p_bc = (95, 225, 255) if hover else (60, 175, 240)
         GlassPanel.draw(screen, self.play_button, border_color=p_bc, bg_color=(*p_bg, 250), border_radius=25, glow=hover)
-        play_label = MEDIUM.render("INITIALIZE MISSION  ▶", True, (255, 255, 255))
+        play_label = MEDIUM.render("BEGIN MISSION", True, (255, 255, 255))
         screen.blit(play_label, play_label.get_rect(center=(self.play_button.centerx, self.play_button.centery - 1)))
         hint = SMALL.render("Press [ENTER] or [SPACE] to begin", True, (150, 205, 240))
         screen.blit(hint, hint.get_rect(center=(self.play_button.centerx, self.play_button.bottom + 14)))
 
-        # 7. Quick Settings Buttons
-        self.draw_action_button(self.intro_sfx_button, "SFX  ON" if self.sound.enabled else "SFX  OFF", self.sound.enabled)
-        self.draw_action_button(self.intro_music_button, "MUSIC  ON" if self.sound.music_enabled else "MUSIC  OFF", self.sound.music_enabled)
-        self.draw_action_button(self.intro_maximize_button, "RESTORE" if self.window_maximized else "MAXIMIZE", self.window_maximized)
-
-        # 8. Flight controls footnote
-        controls = "[L-CLICK] Connect Stars   •   [H] MST Cut Hint   •   [K] Kruskal Solver   •   [Z/Y] Undo/Redo   •   [R] Restart"
-        controls_text = SMALL.render(controls, True, (115, 160, 195))
-        screen.blit(controls_text, controls_text.get_rect(center=(WIDTH // 2, 638)))
+        # Keep the launch screen focused on its single action.
 
     @staticmethod
     def _star_points(cx, cy, outer, inner):
@@ -871,12 +860,6 @@ class GameApp:
                     if self.show_intro:
                         if self.play_button.collidepoint(event.pos):
                             self.show_intro = False
-                        elif self.intro_sfx_button.collidepoint(event.pos):
-                            self.activate_button("sound")
-                        elif self.intro_music_button.collidepoint(event.pos):
-                            self.activate_button("music")
-                        elif self.intro_maximize_button.collidepoint(event.pos):
-                            self.activate_button("maximize")
                         continue
                     if self.sky_notes_open:
                         self.sky_notes_open = False
@@ -934,10 +917,6 @@ class GameApp:
                     elif self.show_intro:
                         if event.key in (pygame.K_RETURN, pygame.K_SPACE):
                             self.show_intro = False
-                        elif event.key == pygame.K_m:
-                            self.activate_button("sound")
-                        elif event.key == pygame.K_p:
-                            self.activate_button("music")
                     elif self.state.is_completed or self.state.is_failed:
                         if event.key == pygame.K_r:
                             self.load_world(self.world_idx)
@@ -955,10 +934,6 @@ class GameApp:
                         self.activate_button("next")
                     elif event.key == pygame.K_r:
                         self.activate_button("reset")
-                    elif event.key == pygame.K_m:
-                        self.activate_button("sound")
-                    elif event.key == pygame.K_p:
-                        self.activate_button("music")
             self.update(dt)
             self.draw(dt)
             pygame.display.flip()
