@@ -13,7 +13,7 @@ for w in range(10):
     
     # Solve level using Kruskal's algorithm
     effective = [
-        (u, v, app.state.compute_edge_cost(u, v, weight))
+        (u, v, weight)
         for u, v, weight in app.state.edges
     ]
     steps = kruskal_steps(list(app.state.stars.keys()), effective)

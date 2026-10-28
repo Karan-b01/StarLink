@@ -12,7 +12,7 @@ for world_idx in range(10):
     # simulate full Kruskal selection
     from dsa.mst import kruskal_steps
     edges_with_cost = [
-        (u, v, app.state.compute_edge_cost(u, v, w))
+        (u, v, w)
         for u, v, w in app.state.edges
     ]
     gen = kruskal_steps(list(app.state.stars.keys()), edges_with_cost)

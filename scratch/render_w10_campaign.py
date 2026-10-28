@@ -9,7 +9,7 @@ app = GameApp()
 # Play world 1 through 9
 for w in range(9):
     app.load_world(w)
-    effective = [(u, v, app.state.compute_edge_cost(u, v, weight)) for u, v, weight in app.state.edges]
+    effective = [(u, v, weight) for u, v, weight in app.state.edges]
     steps = kruskal_steps(list(app.state.stars.keys()), effective)
     for u, v, cost, accepted, _ in steps:
         if accepted:

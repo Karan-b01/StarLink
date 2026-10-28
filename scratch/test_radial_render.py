@@ -70,7 +70,7 @@ class AstrolabeRadialMenu:
                 "hotkey": "[?]",
                 "glyph": "ℹ",
                 "angle": 3 * math.pi / 4, # South-West
-                "desc": "Protocols · Special star mechanics & observatory rules",
+                "desc": "Protocols · Corridor costs & observatory rules",
                 "action": "protocols"
             },
             {
