@@ -11,11 +11,13 @@ def is_fully_connected(vertices, edges):
     if len(edges) < len(vertices) - 1:
         return False
 
+    # Convert the edge list into an adjacency list for quick neighbor lookups.
     adj = {v: [] for v in vertices}
     for u, v, _ in edges:
         adj[u].append(v)
         adj[v].append(u)
 
+    # BFS uses a queue to visit each reachable vertex in turn.
     visited = set()
     queue = deque([vertices[0]])
     visited.add(vertices[0])

@@ -1,5 +1,8 @@
 class ActionHistory:
+    """Two stacks store moves that can be undone or redone."""
+
     def __init__(self):
+        # The last item in each list is the next action to remove.
         self.undo_stack = []
         self.redo_stack = []
 
