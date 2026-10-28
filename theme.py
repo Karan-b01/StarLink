@@ -47,7 +47,6 @@ COLOR_PROGRESS_IDLE = (80, 83, 91)
 COLOR_HOVER_RING = COLOR_ACCENT
 COLOR_BUTTON_HOVER = (235, 195, 105)
 COLOR_GHOST = (82, 88, 101)
-COLOR_WORMHOLE = (201, 162, 74)
 
 # ==============================================================================
 # 2. RESOLUTION & GEOMETRY CONSTANTS (Base 1024x736, resolution-independent)
