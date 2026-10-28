@@ -1,39 +1,53 @@
-import heapq
 
 def dijkstra_shortest_path(vertices, adj_list, source, target):
-    """
-    Dijkstra's shortest path algorithm.
-    Time Complexity: O((V + E) log V)
-    """
-    # Store the best known distance and previous vertex for each destination.
-    distances = {v: float('inf') for v in vertices}
-    previous = {v: None for v in vertices}
-    distances[source] = 0
-    # A min-heap always gives us the not-yet-checked vertex with the lowest cost.
-    pq = [(0, source)]
+    # Initial table
+    known = {v: 0 for v in vertices}
+    dist = {v: float('inf') for v in vertices}
+    prev = {v: None for v in vertices}
 
-    while pq:
-        curr_dist, u = heapq.heappop(pq)
-        if curr_dist > distances[u]:
-            continue
-        if u == target:
+    dist[source] = 0
+
+    while True:
+        v = None
+        
+
+        # Find the unknown vertex with minimum distance
+        for node in vertices:
+            if known[node] == 0:
+                if v is None or dist[node] < dist[v]:
+                    v = node
+
+        # Stop if no reachable vertex remains
+        if v is None or dist[v] == float('inf'):
             break
 
-        for v, weight in adj_list.get(u, []):
-            # Replace a route only when the new route is shorter.
-            if distances[u] + weight < distances[v]:
-                distances[v] = distances[u] + weight
-                previous[v] = u
-                heapq.heappush(pq, (distances[v], v))
+        known[v] = 1
 
-    if distances[target] == float('inf'):
+        # Stop when the target is processed
+        if v == target:
+            break
+
+        # Update adjacent vertices
+        for w, cost in adj_list.get(v, []):
+            if known[w] == 0:
+                new_dist = dist[v] + cost
+
+                if new_dist < dist[w]:
+                    dist[w] = new_dist
+                    prev[w] = v
+
+    # No path exists
+    if dist[target] == float('inf'):
         return float('inf'), []
 
+    # Reconstruct the shortest path
     path = []
     curr = target
+
     while curr is not None:
         path.append(curr)
-        curr = previous[curr]
+        curr = prev[curr]
+
     path.reverse()
 
-    return distances[target], path
+    return dist[target], path
