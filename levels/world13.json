@@ -1,0 +1,98 @@
+{
+  "world_id": 13,
+  "name": "Greedy Trap - Northern Cross",
+  "difficulty": "HARD",
+  "story": "The final cross holds competing unstable paths. Choose the correct risk to restore the galaxy.",
+  "energy_budget": 17,
+  "stars": [
+    {
+      "id": 0,
+      "name": "Deneb",
+      "x": 190,
+      "y": 230
+    },
+    {
+      "id": 1,
+      "name": "Sadr",
+      "x": 330,
+      "y": 350
+    },
+    {
+      "id": 2,
+      "name": "Epsilon Cygni",
+      "x": 190,
+      "y": 480
+    },
+    {
+      "id": 3,
+      "name": "Delta Cygni",
+      "x": 720,
+      "y": 230
+    },
+    {
+      "id": 4,
+      "name": "Albireo",
+      "x": 860,
+      "y": 350
+    },
+    {
+      "id": 5,
+      "name": "Eta Cygni",
+      "x": 720,
+      "y": 480
+    }
+  ],
+  "edges": [
+    [
+      0,
+      1,
+      2
+    ],
+    [
+      1,
+      2,
+      2
+    ],
+    [
+      0,
+      2,
+      3
+    ],
+    [
+      3,
+      4,
+      2
+    ],
+    [
+      4,
+      5,
+      2
+    ],
+    [
+      3,
+      5,
+      3
+    ],
+    [
+      2,
+      3,
+      4
+    ]
+  ],
+  "edge_rules": [
+    {
+      "edge": [
+        0,
+        2
+      ],
+      "collapse_after": 2
+    },
+    {
+      "edge": [
+        2,
+        3
+      ],
+      "collapse_after": 3
+    }
+  ]
+}
