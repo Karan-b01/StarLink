@@ -12,6 +12,7 @@ from visual.celestial_renderer import CelestialRenderer
 from visual.starfield import ParallaxStarfield
 from visual.ui_hud import UIHud
 from visual.particle_system import ParticleSystem
+from visual.sky_patterns import PATTERNS, WORLD_PATTERN
 
 pygame.init()
 WIDTH, HEIGHT = 1100, 720
@@ -32,19 +33,9 @@ SMALL = pygame.font.SysFont("Segoe UI", 14)
 MEDIUM = pygame.font.SysFont("Segoe UI", 17, bold=True)
 TITLE = pygame.font.SysFont("Segoe UI", 23, bold=True)
 FONT_HERO = pygame.font.SysFont("Segoe UI", 46, bold=True)
-
-REAL_SKY_NOTES = {
-    1: "The named stars are real, but they belong to different constellations and are not a Solar System pattern. Sirius is in Canis Major; Vega is in Lyra.",
-    2: "Alnitak, Alnilam and Mintaka form Orion's Belt. Mintaka is a multiple-star system; the Orion Nebula lies in the Sword below the Belt.",
-    3: "Cygnus X-1 is a real X-ray binary in Cygnus. Its X-rays come from hot material falling toward a compact object identified as a black-hole candidate.",
-    4: "The Pleiades (M45) is a real open cluster in Taurus, with over a thousand stars. Its brightest members formed together; it is a cluster, not a constellation.",
-    5: "M31 is the Andromeda Galaxy, a separate galaxy visible in the direction of the Andromeda constellation. It is not a star in the constellation's pattern.",
-    6: "Vega, Deneb and Altair make the Summer Triangle asterism, spanning Lyra, Cygnus and Aquila. It is a useful seasonal sky landmark, not an official constellation.",
-    7: "Draco is a winding northern-sky constellation. Its star Thuban was close to the north celestial pole thousands of years ago; Earth's axial precession changes the pole star.",
-    8: "Carina is a southern-sky constellation. Canopus, in Carina, is the night sky's second-brightest star as seen from Earth; apparent brightness depends on distance as well as luminosity.",
-    9: "Algol is an eclipsing multiple-star system in Perseus. Its changing brightness is a clue: repeated light measurements reveal the orbiting stars passing in front of one another.",
-    10: "Sagittarius points toward the Milky Way's crowded central direction. The bright Milky Way band there contains dust clouds that hide much of the Galactic Centre in visible light.",
-}
+INTRO_TITLE = pygame.font.SysFont("Space Grotesk", 68, bold=True)
+INTRO_BODY = pygame.font.SysFont("Inter", 18)
+INTRO_SMALL = pygame.font.SysFont("Inter", 15)
 
 MISSION_QUOTES = {
     5: "A precise map turns distant light into a route through the unknown.",
@@ -70,7 +61,7 @@ class GameApp:
         self.hud = UIHud(WIDTH, HEIGHT)
         self.sound = SoundEngine(enabled=True)
         self.world_files = []
-        for world_number in range(1, 11):
+        for world_number in range(1, 14):
             self.world_files.append(f"levels/world{world_number}.json")
         self.world_idx = 0
         self.buttons = {
@@ -82,7 +73,6 @@ class GameApp:
             "next": self.hud.btn_next,
             "sky_info": self.hud.btn_sky_info,
             "maximize": self.hud.btn_maximize,
-            "brief": self.hud.btn_brief,
             "hint": self.hud.btn_hint,
         }
         self.particles = ParticleSystem()
@@ -96,21 +86,27 @@ class GameApp:
             "next": pygame.Rect(WIDTH // 2 + 18, 438, 160, 48),
         }
         self.show_intro = True
+        self.show_intro_rules = False
+        self.intro_focus_how = False
         self.toast_message = None
         self.toast_timer = 0.0
-        self.play_button = pygame.Rect(WIDTH // 2 - 160, 466, 320, 54)
+        self.play_button = pygame.Rect(WIDTH // 2 - 112, HEIGHT // 2 + 36, 224, 54)
+        self.how_to_button = pygame.Rect(WIDTH // 2 - 90, HEIGHT // 2 + 112, 180, 34)
         self.window_maximized = False
         self.sky_notes_open = False
         self.mission_brief_open = False
         self.sky_notes_button = pygame.Rect(WIDTH // 2 - 190, 470, 150, 38)
         self.result_brief_button = pygame.Rect(WIDTH // 2 + 40, 470, 150, 38)
         self.result_started_at = 0.0
+        self.result_analysis = None
         self.transition_timer = 0.0
         self.load_world(self.world_idx)
 
     def load_world(self, idx):
         self.world_idx = idx % len(self.world_files)
         self.state = GameState(load_level_from_json(self.world_files[self.world_idx]))
+        self.toast_message = None
+        self.toast_timer = 0.0
         self.selected_star = None
         self.flash_cycle = None
         self.flash_timer = 0.0
@@ -123,6 +119,7 @@ class GameApp:
         self.stepper_edges = []
         self.stepper_active = False
         self.result_started_at = 0.0
+        self.result_analysis = None
         self.sky_notes_open = False
         self.mission_brief_open = False
         self.transition_timer = 0.42
@@ -146,7 +143,7 @@ class GameApp:
                 self.sound.play("cycle")
                 self.particles.emit_cycle_rejection((s1.x, s1.y), (s2.x, s2.y), 26)
             elif ok:
-                if (min(u, v), max(u, v)) in self.state.mst_pairs:
+                if self.state.resonance_streak:
                     self.sound.play_resonance(self.state.resonance_streak)
                 else:
                     self.sound.play("cycle")
@@ -180,20 +177,19 @@ class GameApp:
             self.toast_timer = 3.0
 
     def trigger_kruskal_stepper(self):
-        # DSA: preview Kruskal's greedy MST choices without changing the player's links.
-        effective_edges = []
-        for u, v in self.state.wormhole_pairs:
-            effective_edges.append((u, v, 0))
-        for u, v, base_cost in self.state.edges:
-            cost = self.state.compute_edge_cost(u, v, base_cost)
-            effective_edges.append((u, v, cost))
-
-        vertices = list(self.state.stars.keys())
-        self.stepper_gen = kruskal_steps(vertices, effective_edges)
+        if self.state.has_timed_edges:
+            self.stepper_gen = iter(
+                (*self.state.edges[index], True, "best legal move")
+                for index in self.state.get_current_plan()
+            )
+            self.toast_message = "This plan connects unstable links before they expire."
+        else:
+            vertices = list(self.state.stars.keys())
+            self.stepper_gen = kruskal_steps(vertices, self.state.edges)
+            self.toast_message = "Kruskal checks edges from lowest cost upward and skips cycles."
         self.stepper_edges = []
         self.stepper_active = True
         self.stepper_timer = 0.0
-        self.toast_message = "Kruskal preview: gold = accepted, red dashed × = cycle rejected. Your links are unchanged."
         self.toast_timer = 4.5
 
     @staticmethod
@@ -301,6 +297,7 @@ class GameApp:
                 self.flash_cycle = None
         if (self.state.is_completed or self.state.is_failed) and not self.result_started_at:
             self.result_started_at = self.starfield.elapsed
+            self.result_analysis = self.state.get_post_level_analysis()
         if self.state.is_completed and not self.win_sound_played:
             self.sound.play("win")
             self.win_sound_played = True
@@ -311,7 +308,9 @@ class GameApp:
             self.state.check_failure()
         if self.state.notification_message:
             self.toast_message = self.state.notification_message
-            self.toast_timer = 3.2
+            self.toast_timer = 3.5
+            if "expired" in self.state.notification_message.lower():
+                self.sound.play("cycle")
             self.state.notification_message = None
         if self.stepper_active and self.stepper_gen:
             self.stepper_timer += dt
@@ -353,12 +352,21 @@ class GameApp:
         screen.blit(playfield, (155, 82))
 
         # Thin constellation guide lines and active energy corridors.
-        for u, v, base_cost in self.state.edges:
+        selected_pairs = {
+            (min(edge[0], edge[1]), max(edge[0], edge[1]))
+            for edge in self.state.selected_edges
+        }
+        edge_labels = []
+        for edge_i, (u, v, base_cost) in enumerate(self.state.edges):
+            if edge_i in self.state.expired_edges:
+                continue
             a, b = self.state.stars[u], self.state.stars[v]
             p1, p2 = (int(a.x), int(a.y)), (int(b.x), int(b.y))
-            selected = any(e[0] == min(u, v) and e[1] == max(u, v) for e in self.state.selected_edges)
+            pair = (min(u, v), max(u, v))
+            selected = pair in selected_pairs
+            deadline = self.state.edge_rules.get(edge_i)
             cycle = self.flash_cycle == (min(u, v), max(u, v)) if self.flash_cycle else False
-            cost = self.state.compute_edge_cost(u, v, base_cost)
+            cost = base_cost
             if cycle:
                 pygame.draw.line(screen, (255, 65, 95), p1, p2, 5)
                 pygame.draw.line(screen, (255, 210, 220), p1, p2, 1)
@@ -367,27 +375,33 @@ class GameApp:
                 pygame.draw.line(screen, (45, 174, 245), p1, p2, 4)
                 shimmer = (math.sin(now * 4 + u + v) + 1) * .5
                 pygame.draw.line(screen, (int(130 + shimmer * 100), 245, 255), p1, p2, 1)
-                # A traveling pulse makes restored connections feel powered.
+                # A traveling pulse marks a restored connection.
                 travel = (now * .42 + (u + v) * .173) % 1.0
                 spark = (int(p1[0] + (p2[0] - p1[0]) * travel),
                          int(p1[1] + (p2[1] - p1[1]) * travel))
                 pygame.draw.circle(screen, (25, 110, 190), spark, 7)
                 pygame.draw.circle(screen, (210, 250, 255), spark, 2)
+            elif deadline is not None:
+                moves_left = max(0, deadline - self.state.turns_elapsed)
+                if moves_left <= 1:
+                    urgent_pulse = (math.sin(now * 8) + 1) * 0.5
+                    alert_color = (
+                        int(235 + urgent_pulse * 20),
+                        int(85 + urgent_pulse * 40),
+                        int(70 + urgent_pulse * 30)
+                    )
+                    self.draw_dashed_line(screen, alert_color, p1, p2, width=3, dash_length=8, gap_length=5)
+                else:
+                    self.draw_dashed_line(screen, (224, 173, 92), p1, p2, width=2, dash_length=9, gap_length=6)
             else:
                 pygame.draw.line(screen, (39, 77, 116), p1, p2, 1)
             mid = ((p1[0] + p2[0]) // 2, (p1[1] + p2[1]) // 2)
-            pygame.draw.circle(screen, (7, 15, 34), mid, 12)
-            pygame.draw.circle(screen, (53, 90, 145), mid, 12, 1)
-            label = SMALL.render(str(cost), True, (179, 213, 247) if not selected else (220, 250, 255))
-            screen.blit(label, label.get_rect(center=mid))
-        for u, v in self.state.wormhole_pairs:
-            a, b = self.state.stars[u], self.state.stars[v]
-            p1, p2 = (int(a.x), int(a.y)), (int(b.x), int(b.y))
-            self.draw_dashed_line(screen, (82, 239, 204), p1, p2, width=3, dash_length=10, gap_length=7)
-            mid = ((p1[0] + p2[0]) // 2, (p1[1] + p2[1]) // 2)
-            tag = SMALL.render("FREE", True, (126, 255, 220))
-            screen.blit(tag, tag.get_rect(center=mid))
-
+            label_text = str(cost)
+            timer_text = None
+            if deadline is not None and not selected:
+                moves_left = max(0, deadline - self.state.turns_elapsed)
+                timer_text = f"{moves_left} MOVE" if moves_left == 1 else f"{moves_left} MOVES"
+            edge_labels.append((u, v, mid, label_text, selected, timer_text))
         for step in self.stepper_edges:
             u, v, _, accepted, _ = step
             a, b = self.state.stars[u], self.state.stars[v]
@@ -430,7 +444,9 @@ class GameApp:
         # Candidate neighbor pulsing radar rings when a star is selected
         if self.selected_star is not None:
             cand_neighbors = set()
-            for u, v, _ in self.state.edges:
+            for edge_i, (u, v, _) in enumerate(self.state.edges):
+                if edge_i in self.state.expired_edges:
+                    continue
                 if u == self.selected_star and not any(e[0] == min(u, v) and e[1] == max(u, v) for e in self.state.selected_edges):
                     cand_neighbors.add(v)
                 elif v == self.selected_star and not any(e[0] == min(u, v) and e[1] == max(u, v) for e in self.state.selected_edges):
@@ -445,15 +461,87 @@ class GameApp:
                     pygame.draw.circle(ring_surf, (80, 220, 255, ring_alpha), (ring_r + 2, ring_r + 2), ring_r, 2)
                     screen.blit(ring_surf, (int(n_star.x - ring_r - 2), int(n_star.y - ring_r - 2)))
 
+        occupied_labels = []
         for star in self.state.star_list:
-            CelestialRenderer.draw_star(screen, star, self.selected_star == star.id, now, FONT)
+            occupied_labels.extend(CelestialRenderer.draw_star(
+                screen, star, self.selected_star == star.id, now, FONT,
+                all_stars=self.state.star_list,
+                edges=self.state.edges,
+                placed_labels=occupied_labels,
+            ))
+
+        # Put corridor costs and timer badges in clean non-overlapping positions
+        def draw_edge_badge(u, v, mid, cost_text, selected, timer_text, occupied):
+            cost_color = (220, 250, 255) if selected else (179, 213, 247)
+            cost_surf = SMALL.render(cost_text, True, cost_color)
+
+            is_urgent = timer_text and timer_text.startswith("1 ")
+            if timer_text:
+                timer_fg = (255, 115, 95) if is_urgent else (255, 211, 144)
+                timer_surf = SMALL.render(timer_text, True, timer_fg)
+                dot_surf = SMALL.render(" • ", True, (120, 145, 175))
+                total_w = cost_surf.get_width() + dot_surf.get_width() + timer_surf.get_width() + 18
+                total_h = max(cost_surf.get_height(), timer_surf.get_height()) + 8
+
+                badge_img = pygame.Surface((total_w, total_h), pygame.SRCALPHA)
+                bg_color = (38, 14, 18, 240) if is_urgent else (10, 18, 32, 240)
+                border_color = (255, 85, 75) if is_urgent else (210, 165, 80)
+                pygame.draw.rect(badge_img, bg_color, badge_img.get_rect(), border_radius=6)
+                pygame.draw.rect(badge_img, border_color, badge_img.get_rect(), 1, border_radius=6)
+
+                cx = 9
+                badge_img.blit(cost_surf, (cx, (total_h - cost_surf.get_height()) // 2))
+                cx += cost_surf.get_width()
+                badge_img.blit(dot_surf, (cx, (total_h - dot_surf.get_height()) // 2))
+                cx += dot_surf.get_width()
+                badge_img.blit(timer_surf, (cx, (total_h - timer_surf.get_height()) // 2))
+            else:
+                total_w = cost_surf.get_width() + 14
+                total_h = cost_surf.get_height() + 8
+                badge_img = pygame.Surface((total_w, total_h), pygame.SRCALPHA)
+                bg_color = (8, 16, 32, 230)
+                border_color = (60, 140, 215) if selected else (45, 85, 135)
+                pygame.draw.rect(badge_img, bg_color, badge_img.get_rect(), border_radius=6)
+                pygame.draw.rect(badge_img, border_color, badge_img.get_rect(), 1, border_radius=6)
+                badge_img.blit(cost_surf, (7, (total_h - cost_surf.get_height()) // 2))
+
+            a, b = self.state.stars[u], self.state.stars[v]
+            dx, dy = b.x - a.x, b.y - a.y
+            length = max(1.0, math.hypot(dx, dy))
+            normal = (-dy / length, dx / length)
+
+            candidates = []
+            for fraction in (0.50, 0.40, 0.60, 0.30, 0.70, 0.22, 0.78):
+                base_x = a.x + dx * fraction
+                base_y = a.y + dy * fraction
+                for offset in (0, 18, -18, 30, -30, 42, -42):
+                    pos = (round(base_x + normal[0] * offset), round(base_y + normal[1] * offset))
+                    rect = badge_img.get_rect(center=pos)
+                    if rect.left < 10 or rect.right > WIDTH - 185 or rect.top < 75 or rect.bottom > HEIGHT - 85:
+                        continue
+                    if any(math.hypot(rect.centerx - s.x, rect.centery - s.y) < 24 for s in self.state.star_list):
+                        continue
+                    if any(rect.colliderect(old.inflate(2, 2)) for old in occupied):
+                        continue
+                    score = abs(fraction - 0.5) * 100 + abs(offset)
+                    candidates.append((score, rect))
+
+            if candidates:
+                candidates.sort(key=lambda item: item[0])
+                best_rect = candidates[0][1]
+            else:
+                best_rect = badge_img.get_rect(center=mid)
+
+            screen.blit(badge_img, best_rect.topleft)
+            occupied.append(best_rect)
+
+        for u, v, mid, text, selected, timer_text in edge_labels:
+            draw_edge_badge(u, v, mid, text, selected, timer_text, occupied_labels)
 
         # Real-time star hover analysis & trajectory preview
         mouse_pos = pygame.mouse.get_pos()
-        roster_height = min(290, 46 + len(self.state.star_list) * 20 + 66)
         in_hud = (
             mouse_pos[1] <= 70 or mouse_pos[1] >= HEIGHT - 85 or
-            pygame.Rect(18, 92, 136, roster_height).collidepoint(mouse_pos) or
             pygame.Rect(920, 92, 164, 520).collidepoint(mouse_pos)
         )
         hovered_star = None
@@ -472,41 +560,47 @@ class GameApp:
                 u, v = min(self.selected_star, hovered_star.id), max(self.selected_star, hovered_star.id)
                 edge_entry = next((e for e in self.state.edges if (e[0] == u and e[1] == v) or (e[0] == v and e[1] == u)), None)
                 if edge_entry:
+                    edge_i = self.state.edge_index[(u, v)]
                     from dsa.union_find import UnionFind
                     uf = UnionFind(list(self.state.stars.keys()))
                     for su, sv, _ in self.state.selected_edges:
                         uf.union(su, sv)
                     is_cycle = (uf.find(u) == uf.find(v))
                     mid = ((sp1[0] + sp2[0]) // 2, (sp1[1] + sp2[1]) // 2)
-                    if is_cycle:
+                    if edge_i in self.state.expired_edges:
+                        self.draw_dashed_line(screen, (255, 70, 90), sp1, sp2, width=3, dash_length=8, gap_length=5)
+                        warn_pill = SMALL.render("LINK EXPIRED", True, (255, 150, 150))
+                        pill_rect = warn_pill.get_rect(center=(mid[0], mid[1] - 18))
+                        glass_panel(screen, pill_rect.inflate(14, 8), fill=(30, 8, 14, 235), border=(255, 70, 90), radius=5)
+                        screen.blit(warn_pill, pill_rect)
+                    elif is_cycle:
                         self.draw_dashed_line(screen, (255, 70, 90), sp1, sp2, width=3, dash_length=8, gap_length=5)
                         warn_pill = SMALL.render("CYCLE REJECTED", True, (255, 130, 140))
                         pill_rect = warn_pill.get_rect(center=(mid[0], mid[1] - 18))
                         glass_panel(screen, pill_rect.inflate(14, 8), fill=(30, 8, 14, 235), border=(255, 70, 90), radius=5)
                         screen.blit(warn_pill, pill_rect)
                     else:
-                        cost = self.state.compute_edge_cost(u, v, edge_entry[2])
+                        cost = edge_entry[2]
                         self.draw_dashed_line(screen, (80, 230, 255), sp1, sp2, width=3, dash_length=8, gap_length=5)
-                        cost_pill = SMALL.render(f"LINK COST: {cost}", True, (190, 245, 255))
+                        cost_text = f"LINK COST: {cost}"
+                        cost_pill = SMALL.render(cost_text, True, (190, 245, 255))
                         pill_rect = cost_pill.get_rect(center=(mid[0], mid[1] - 18))
                         glass_panel(screen, pill_rect.inflate(14, 8), fill=(8, 25, 45, 235), border=(70, 190, 245), radius=5)
                         screen.blit(cost_pill, pill_rect)
             elif self.selected_star is None:
-                card_w, card_h = 160, 48
-                card_x = min(WIDTH - 200, max(160, hx - card_w // 2))
-                if card_x + card_w > 920:
-                    card_x = max(160, hx - card_w - 28)
-                card_y = max(85, hy - 62)
-                type_colors = {
-                    "POWER": ((100, 220, 255), "POWER: 50% link discount"),
-                    "NORMAL": ((180, 215, 245), "BEACON: Standard star"),
-                }
-                t_col, t_desc = type_colors.get(hovered_star.type, ((180, 215, 245), "BEACON"))
+                card_w, card_h = 220, 52
+                # Keep hover details in the clear strip below the top bar,
+                # away from corridor costs and star-name labels.
+                card_x = (WIDTH - card_w) // 2
+                card_y = 76
+                t_col, t_desc = (180, 215, 245), "STAR: standard corridor cost"
                 card_rect = pygame.Rect(card_x, card_y, card_w, card_h)
                 glass_panel(screen, card_rect, fill=(6, 14, 32, 235), border=t_col, radius=8)
-                name_lbl = SMALL.render(f"{hovered_star.name.upper()}", True, (240, 248, 255))
+                name_text = self.hud.fit_text(hovered_star.name.upper(), SMALL, card_w - 16)
+                name_lbl = SMALL.render(name_text, True, (240, 248, 255))
                 screen.blit(name_lbl, (card_x + 8, card_y + 6))
-                role_lbl = pygame.font.SysFont("Segoe UI", 10).render(t_desc, True, t_col)
+                role_font = pygame.font.SysFont("Segoe UI", 10)
+                role_lbl = role_font.render(self.hud.fit_text(t_desc, role_font, card_w - 16), True, t_col)
                 screen.blit(role_lbl, (card_x + 8, card_y + 26))
 
         ghost_elapsed = self.starfield.elapsed - self.result_started_at if self.state.is_completed else -1
@@ -515,18 +609,17 @@ class GameApp:
 
         # Overlay panels follow the compact constellation-dashboard layout.
         self.hud.draw_top_bar(screen, self.state, display_energy=self.display_energy)
-        self.hud.draw_left_stars_panel(screen, self.state.star_list)
         self.hud.draw_kruskal_inspector(screen, self.state)
         self.hud.draw_bottom_dock(screen, self.state, self.window_maximized)
 
         if self.toast_message and self.toast_timer > 0:
             toast_w = min(620, max(330, FONT.size(self.toast_message)[0] + 48))
             toast_rect = pygame.Rect((WIDTH - toast_w) // 2, HEIGHT - 112, toast_w, 42)
-            warning = "Warning:" in self.toast_message
+            warning = "Warning:" in self.toast_message or "bridge" in self.toast_message.lower() or "expired" in self.toast_message.lower()
             accent = (255, 133, 116) if warning else (255, 196, 91)
             glass_panel(screen, toast_rect, (12, 20, 39, 242), accent, 10)
             pygame.draw.circle(screen, accent, (toast_rect.x + 18, toast_rect.centery), 4)
-            toast_text = SMALL.render(self.toast_message, True, (232, 241, 250))
+            toast_text = SMALL.render(self.hud.fit_text(self.toast_message, SMALL, toast_w - 42), True, (232, 241, 250))
             screen.blit(toast_text, toast_text.get_rect(midleft=(toast_rect.x + 31, toast_rect.centery)))
 
         if self.state.is_failed or (self.state.is_completed and ghost_elapsed >= 3.2):
@@ -541,113 +634,108 @@ class GameApp:
             screen.blit(fade, (0, 0))
 
     def _draw_intro_screen(self, now):
-        # 1. Semi-transparent deep cosmic veil
+        # Use a quiet navy background, a soft center light, and a few dim stars.
+        screen.fill((5, 8, 14))
+        glow = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+        for radius in range(420, 0, -20):
+            alpha = int(24 * (1 - radius / 440))
+            pygame.draw.circle(glow, (34, 38, 44, alpha), (WIDTH // 2, HEIGHT // 2 - 10), radius)
+        screen.blit(glow, (0, 0))
+
+        # Sparse, gently twinkling stars and two faint constellation strokes.
+        star_points = []
+        for index in range(42):
+            x = (index * 193 + 73) % WIDTH
+            y = (index * 317 + 41) % HEIGHT
+            phase = index * 1.71
+            brightness = int(48 + 28 * (0.5 + 0.5 * math.sin(now * 0.7 + phase)))
+            star_points.append((x, y))
+            pygame.draw.circle(screen, (brightness, brightness, brightness + 5), (x, y), 1 if index % 5 else 2)
+
+        faint = (32, 35, 38)
+        for pairs in ((1, 7, 12, 18), (25, 31, 36, 40)):
+            for first, second in zip(pairs, pairs[1:]):
+                pygame.draw.line(screen, faint, star_points[first], star_points[second], 1)
+
+        center_x = WIDTH // 2
+        fade = lambda start: max(0, min(255, int((now - start) * 520)))
+
+        # Small line-art constellation mark, drawn without a surrounding badge.
+        logo_y = HEIGHT // 2 - 150
+        logo_points = [(center_x - 15, logo_y + 10), (center_x - 3, logo_y - 10),
+                       (center_x + 15, logo_y - 4), (center_x + 7, logo_y + 15)]
+        logo_layer = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+        for first, second in ((0, 1), (1, 2), (2, 3)):
+            pygame.draw.line(logo_layer, (201, 162, 74, 210), logo_points[first], logo_points[second], 2)
+        for point in logo_points:
+            pygame.draw.circle(logo_layer, (245, 239, 218, 235), point, 3)
+        logo_layer.set_alpha(fade(0.0))
+        screen.blit(logo_layer, (0, 0))
+
+        title_text = "STARLINK"
+        title_spacing = 6
+        title_width = sum(INTRO_TITLE.size(char)[0] for char in title_text) + title_spacing * (len(title_text) - 1)
+        title_x = center_x - title_width // 2
+        for char in title_text:
+            glyph = INTRO_TITLE.render(char, True, (248, 247, 242))
+            glyph.set_alpha(fade(0.12))
+            screen.blit(glyph, (title_x, HEIGHT // 2 - 65 - glyph.get_height() // 2))
+            title_x += glyph.get_width() + title_spacing
+
+        tagline = INTRO_BODY.render("Connect the stars. Spend less energy.", True, (205, 207, 208))
+        tagline.set_alpha(fade(0.28))
+        screen.blit(tagline, tagline.get_rect(center=(center_x, HEIGHT // 2 - 5)))
+
+        hover = self.play_button.collidepoint(pygame.mouse.get_pos())
+        button_color = (224, 190, 112) if hover else (201, 162, 74)
+        button_layer = pygame.Surface(self.play_button.size, pygame.SRCALPHA)
+        pygame.draw.rect(button_layer, (*button_color, 255), button_layer.get_rect(), border_radius=13)
+        label = INTRO_BODY.render("Play", True, (24, 22, 18))
+        button_layer.blit(label, label.get_rect(center=button_layer.get_rect().center))
+        button_layer.set_alpha(fade(0.42))
+        screen.blit(button_layer, (self.play_button.left, self.play_button.top))
+        if not self.intro_focus_how and fade(0.42) > 0:
+            pygame.draw.rect(screen, (246, 224, 171), self.play_button.inflate(6, 6), 2, border_radius=16)
+
+        link_color = (145, 147, 149) if not self.how_to_button.collidepoint(pygame.mouse.get_pos()) else (224, 222, 215)
+        link = INTRO_SMALL.render("How to play", True, link_color)
+        link.set_alpha(fade(0.55))
+        screen.blit(link, link.get_rect(center=self.how_to_button.center))
+        if self.how_to_button.collidepoint(pygame.mouse.get_pos()) or self.intro_focus_how:
+            pygame.draw.line(screen, (201, 162, 74), (self.how_to_button.left + 28, self.how_to_button.bottom - 2),
+                             (self.how_to_button.right - 28, self.how_to_button.bottom - 2), 1)
+
+        if self.show_intro_rules:
+            self._draw_intro_rules()
+
+    def _draw_intro_rules(self):
         veil = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
-        veil.fill((2, 6, 18, 140))
+        veil.fill((2, 4, 8, 210))
         screen.blit(veil, (0, 0))
 
-        # 2. Main Glassmorphic Container Panel
-        main_box = pygame.Rect(45, 28, WIDTH - 90, HEIGHT - 56)
-        from visual.ui_hud import GlassPanel
-        GlassPanel.draw(screen, main_box, border_color=(45, 115, 190), bg_color=(5, 12, 28, 235), border_radius=20, glow=True)
+        box = pygame.Rect(WIDTH // 2 - 320, HEIGHT // 2 - 200, 640, 400)
+        pygame.draw.rect(screen, (13, 17, 22), box, border_radius=14)
+        pygame.draw.rect(screen, (68, 65, 55), box, 1, border_radius=14)
+        heading = TITLE.render("How to play", True, (248, 247, 242))
+        screen.blit(heading, heading.get_rect(center=(box.centerx, box.top + 46)))
 
-        # 3. Holographic Emblem & Title Header
-        cx, cy = WIDTH // 2, 78
-        pulse = 0.5 + 0.5 * math.sin(now * 3.5)
-        pygame.draw.circle(screen, (18, 55, 105), (cx, cy), 22)
-        pygame.draw.circle(screen, (50, 190, 250), (cx, cy), 22, 1)
-        pygame.draw.circle(screen, (100, 225, 255), (cx, cy), 16 + int(pulse * 3), 1)
-        emblem_nodes = [
-            (cx - 11, cy + 5), (cx - 2, cy - 9), (cx + 11, cy - 3), (cx + 6, cy + 11)
+        rules = [
+            "Select two stars joined by a corridor to connect them.",
+            "Each corridor costs energy. Stay within the sector reserve.",
+            "Union-Find rejects links that create a cycle.",
+            "Every move advances the collapse timer: amber dashed links disappear permanently when their countdown reaches zero.",
+            "Some unstable links are vital to connect distant stars cheaply, while others are tempting shortcuts—plan ahead!",
         ]
-        for a, b in [(0, 1), (1, 2), (2, 3), (3, 0)]:
-            pygame.draw.line(screen, (130, 225, 255), emblem_nodes[a], emblem_nodes[b], 2)
-        for pt in emblem_nodes:
-            pygame.draw.circle(screen, (245, 252, 255), pt, 3)
+        y = box.top + 104
+        for rule in rules:
+            for line in self.wrap_text(rule, INTRO_BODY, box.width - 72):
+                rendered = INTRO_BODY.render(line, True, (218, 219, 216))
+                screen.blit(rendered, (box.left + 36, y))
+                y += 26
+            y += 10
 
-        title_glow = FONT_HERO.render("STARLINK", True, (35, 125, 205))
-        screen.blit(title_glow, title_glow.get_rect(center=(cx, 130)))
-        title_main = FONT_HERO.render("STARLINK", True, (245, 250, 255))
-        screen.blit(title_main, title_main.get_rect(center=(cx, 128)))
-
-        sub1 = SMALL.render("CONSTELLATION WEAVER  //  FLIGHT DIRECTIVE & ALGORITHM PROTOCOLS", True, (90, 205, 245))
-        screen.blit(sub1, sub1.get_rect(center=(cx, 161)))
-        sub2 = FONT.render("Deploy Minimum Spanning Trees (MST) & Union-Find Cycle Prevention to restore the celestial grid.", True, (175, 210, 235))
-        screen.blit(sub2, sub2.get_rect(center=(cx, 183)))
-
-        # 4. Three Glassmorphic Feature Cards
-        card_gap = 26
-        card_margin = 30
-        card_w = (main_box.width - card_margin * 2 - card_gap * 2) // 3
-        card_h = 192
-        card_xs = [
-            main_box.left + card_margin + index * (card_w + card_gap)
-            for index in range(3)
-        ]
-        cards_data = [
-            ("01", "GRID TOPOLOGY", (75, 210, 255), [
-                "Click two stars joined by an energy corridor to forge a laser connection.",
-                "Corridors consume stellar energy. Connect every star into one network without exhausting reserve.",
-                "Target: Full sector connectivity.",
-            ]),
-            ("02", "CYCLE PREVENTION", (165, 145, 255), [
-                "Closed loops cause harmonic feedback and are rejected by stellar physics.",
-                "Union-Find (Disjoint Set) tracks connected components in real time to instantly block cycles.",
-                "Rule: No closed circuits.",
-            ]),
-            ("03", "KRUSKAL OPTIMUM", (75, 230, 160), [
-                "Kruskal's algorithm computes the theoretical minimum energy requirement.",
-                "Match the optimal spanning tree weight to earn 5-Star efficiency ratings.",
-                "Benchmark: Greedy edge selection.",
-            ]),
-        ]
-        for x, (num, heading, accent, paragraphs) in zip(card_xs, cards_data):
-            c_rect = pygame.Rect(x, 205, card_w, card_h)
-            GlassPanel.draw(screen, c_rect, border_color=accent, bg_color=(8, 18, 38, 220), border_radius=14, glow=False)
-
-            badge_pos = (x + 30, 232)
-            pygame.draw.circle(screen, (15, 35, 65), badge_pos, 15)
-            pygame.draw.circle(screen, accent, badge_pos, 15, 1)
-            num_surf = MEDIUM.render(num, True, accent)
-            screen.blit(num_surf, num_surf.get_rect(center=badge_pos))
-
-            h_surf = MEDIUM.render(heading, True, (240, 248, 255))
-            screen.blit(h_surf, (x + 55, 221))
-
-            pygame.draw.line(screen, (*accent[:3], 80), (x + 20, 254), (x + card_w - 20, 254), 1)
-
-            text_y = 264
-            for p in paragraphs:
-                wrapped_lines = self.wrap_text(p, SMALL, card_w - 36)
-                for line in wrapped_lines:
-                    screen.blit(SMALL.render(line, True, (175, 205, 230) if p != paragraphs[-1] else accent), (x + 18, text_y))
-                    text_y += 18
-                text_y += 4
-
-        # 5. Stellar Property Pill Strip
-        strip_rect = pygame.Rect(main_box.left + 75, 412, main_box.width - 150, 36)
-        GlassPanel.draw(screen, strip_rect, border_color=(45, 100, 160), bg_color=(8, 18, 38, 220), border_radius=18)
-        properties = [
-            (strip_rect.left + strip_rect.width // 6, "POWER: HALVES LINK COST", (85, 205, 255)),
-            (strip_rect.centerx, "MST PICKS: RISING CHIMES", (85, 235, 175)),
-            (strip_rect.left + strip_rect.width * 5 // 6, "WORMHOLE: FREE LINK", (255, 196, 105)),
-        ]
-        for px, ptext, pcol in properties:
-            ptxt = SMALL.render(ptext, True, (225, 240, 255))
-            pygame.draw.circle(screen, pcol, (px - ptxt.get_width() // 2 - 10, 430), 4)
-            screen.blit(ptxt, ptxt.get_rect(center=(px, 430)))
-        # 6. Primary Action Play Button
-        hover = self.play_button.collidepoint(pygame.mouse.get_pos())
-        p_pulse = (math.sin(now * 3.5) + 1) * 0.5
-        p_bg = (18, 140, 220) if hover else (12, int(90 + p_pulse * 25), 160)
-        p_bc = (95, 225, 255) if hover else (60, 175, 240)
-        GlassPanel.draw(screen, self.play_button, border_color=p_bc, bg_color=(*p_bg, 250), border_radius=25, glow=hover)
-        play_label = MEDIUM.render("BEGIN MISSION", True, (255, 255, 255))
-        screen.blit(play_label, play_label.get_rect(center=(self.play_button.centerx, self.play_button.centery - 1)))
-        hint = SMALL.render("Press [ENTER] or [SPACE] to begin", True, (150, 205, 240))
-        screen.blit(hint, hint.get_rect(center=(self.play_button.centerx, self.play_button.bottom + 14)))
-
-        # Keep the launch screen focused on its single action.
+        close_text = INTRO_SMALL.render("Press Esc or click to close", True, (154, 155, 153))
+        screen.blit(close_text, close_text.get_rect(center=(box.centerx, box.bottom - 32)))
 
     @staticmethod
     def _star_points(cx, cy, outer, inner):
@@ -663,16 +751,19 @@ class GameApp:
         overlay = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
         overlay.fill((1, 4, 15, 205))
         screen.blit(overlay, (0, 0))
-        box = pygame.Rect(WIDTH // 2 - 290, 138, 580, 470)
+        box = pygame.Rect(WIDTH // 2 - 330, 64, 660, 590)
         border = (77, 190, 230) if success else (194, 91, 116)
         glass_panel(screen, box, (5, 15, 35, 252), border, 20)
         eyebrow = SMALL.render("SECTOR REPORT", True, (110, 177, 208))
-        screen.blit(eyebrow, eyebrow.get_rect(center=(WIDTH // 2, 218)))
+        screen.blit(eyebrow, eyebrow.get_rect(center=(WIDTH // 2, 96)))
         final_sector = self.world_idx == len(self.world_files) - 1
-        title_text = ("CAMPAIGN COMPLETE" if final_sector else "CONSTELLATION RESTORED") if success else "SIGNAL LOST"
+        if success:
+            title_text = "CAMPAIGN COMPLETE" if final_sector else "CONSTELLATION RESTORED"
+        else:
+            title_text = "SIGNAL LOST"
         title_color = (231, 248, 255) if success else (255, 190, 190)
         title = TITLE.render(title_text, True, title_color)
-        screen.blit(title, title.get_rect(center=(WIDTH // 2, 255)))
+        screen.blit(title, title.get_rect(center=(WIDTH // 2, 130)))
 
         now = self.starfield.elapsed
         spacing = 48
@@ -681,7 +772,7 @@ class GameApp:
             earned = success and i < self.state.earned_stars
             reveal = min(1.0, max(0.0, (now - self.result_started_at - i * .22) / .32)) if success else 0.0
             bob = math.sin(now * 3 + i * .65) * 2 if earned else 0
-            cx, cy = first_x + i * spacing, int(310 + bob)
+            cx, cy = first_x + i * spacing, int(184 + bob)
             if earned:
                 glow = pygame.Surface((46, 46), pygame.SRCALPHA)
                 glow_alpha = int((15 + (math.sin(now * 3 + i) + 1) * 8) * reveal)
@@ -694,38 +785,71 @@ class GameApp:
             pygame.draw.polygon(screen, fill, points)
             pygame.draw.polygon(screen, outline, points, 2)
 
-        cost = sum(c for _, _, c in self.state.selected_edges)
-        if success:
-            detail = FONT.render(f"Network cost  {cost}     |     Optimal network  {self.state.optimal_cost}", True, (177, 207, 230))
-            rating = f"EFFICIENCY RATING  {self.state.earned_stars} / 5"
-            if self.state.earned_stars >= 4:
-                hint_text = "Excellent energy planning. Your route is close to the optimum."
-                hint_color = (115, 222, 199)
-            elif self.state.earned_stars >= 2:
-                hint_text = "Network restored. Review the energy costs to improve your score."
-                hint_color = (255, 205, 129)
-            else:
-                hint_text = "Network restored, with high energy use. Retry to aim for more stars."
-                hint_color = (255, 172, 142)
+        analysis = self.result_analysis or self.state.get_post_level_analysis()
+        total_cost = analysis["player_cost"]
+        optimal_cost = analysis["optimal_cost"]
+        if success and self.state.earned_stars >= 4:
+            hint_text, hint_color = "Excellent energy planning. Your route is close to the optimum.", (115, 222, 199)
+        elif success and self.state.earned_stars >= 2:
+            hint_text, hint_color = "Review the extra energy to improve your score.", (255, 205, 129)
+        elif success:
+            hint_text, hint_color = "Retry the sector to use fewer extra links.", (255, 172, 142)
         else:
-            detail = FONT.render(f"Energy remaining  {self.state.energy}     |     Links restored  {len(self.state.selected_edges)}", True, (218, 182, 191))
-            rating = "A few more links need a larger energy reserve."
-            hint_text = "Retry the sector or continue to the next one."
-            hint_color = (238, 158, 168)
-        screen.blit(detail, detail.get_rect(center=(WIDTH // 2, 356)))
+            hint_text, hint_color = "Retry and compare the edge weights before choosing.", (238, 158, 168)
+            if self.state.status_message.startswith("Not enough energy"):
+                hint_text = self.state.status_message
+
+        # Present the three energy values as aligned columns for quick comparison.
+        columns = [
+            ("YOUR TOTAL", f"{total_cost} energy", (205, 218, 229)),
+            ("OPTIMAL", f"{optimal_cost} energy", (137, 208, 184)),
+            ("WASTED", f"{analysis['wasted_energy']} energy" if success else "—", (255, 205, 129)),
+        ]
+        for index, (label, value, color) in enumerate(columns):
+            cx = WIDTH // 2 - 190 + index * 190
+            label_surface = SMALL.render(label, True, (137, 176, 204))
+            value_surface = MEDIUM.render(value, True, color)
+            screen.blit(label_surface, label_surface.get_rect(center=(cx, 229)))
+            screen.blit(value_surface, value_surface.get_rect(center=(cx, 253)))
+        pygame.draw.line(screen, (40, 67, 91), (box.left + 34, 278), (box.right - 34, 278), 1)
+
+        divergence = analysis["divergence"]
+        if divergence:
+            u, v, cost = divergence["edge"]
+            lines = [f"Move {divergence['move']}: You chose {self.state.stars[u].name} – {self.state.stars[v].name} ({cost} energy)."]
+            alternative = divergence["alternative"]
+            if alternative:
+                a, b, alt_cost = alternative
+                route_name = "Best legal plan" if self.state.has_timed_edges else "Kruskal's tree"
+                lines.append(f"{route_name} chose {self.state.stars[a].name} - {self.state.stars[b].name} ({alt_cost} energy).")
+            divergence_color = (255, 190, 157)
+        elif success:
+            lines = ["No divergence: your links match a minimum-cost tree."]
+            divergence_color = (137, 208, 184)
+        else:
+            lines = ["No off-optimal move yet."]
+            divergence_color = (177, 207, 230)
+        label = SMALL.render("FIRST DIVERGENCE", True, (137, 176, 204))
+        screen.blit(label, label.get_rect(midleft=(box.left + 38, 298)))
+        content_y = 322
+        for line in lines:
+            for wrapped in self.wrap_text(line, SMALL, box.width - 76):
+                line_surface = SMALL.render(wrapped, True, divergence_color)
+                screen.blit(line_surface, line_surface.get_rect(midleft=(box.left + 38, content_y)))
+                content_y += 20
+
+        rating = f"EFFICIENCY RATING  {self.state.earned_stars} / 5" if success else "NETWORK INCOMPLETE"
         rating_surface = SMALL.render(rating, True, (137, 176, 204))
-        screen.blit(rating_surface, rating_surface.get_rect(center=(WIDTH // 2, 386)))
-        hint = SMALL.render(hint_text, True, hint_color)
-        screen.blit(hint, hint.get_rect(center=(WIDTH // 2, 410)))
-        quote = MISSION_QUOTES[self.state.earned_stars if success else 0]
-        quote_surface = SMALL.render(quote, True, (157, 199, 226))
-        quote_label = SMALL.render("MISSION QUOTE", True, (105, 160, 196))
-        screen.blit(quote_label, quote_label.get_rect(center=(WIDTH // 2, 430)))
-        screen.blit(quote_surface, quote_surface.get_rect(center=(WIDTH // 2, 449)))
+        screen.blit(rating_surface, rating_surface.get_rect(center=(WIDTH // 2, 390)))
+        hint_surface = SMALL.render(self.hud.fit_text(hint_text, SMALL, box.width - 76), True, hint_color)
+        screen.blit(hint_surface, hint_surface.get_rect(center=(WIDTH // 2, 414)))
+
+        self.sky_notes_button = pygame.Rect(WIDTH // 2 - 198, 452, 180, 38)
+        self.result_brief_button = pygame.Rect(WIDTH // 2 + 18, 452, 180, 38)
         self.draw_action_button(self.sky_notes_button, "STAR INFO  I", False)
         self.draw_action_button(self.result_brief_button, "MISSION BRIEF  B", False)
-        self.result_buttons["retry"] = pygame.Rect(WIDTH // 2 - 178, 526, 160, 48)
-        self.result_buttons["next"] = pygame.Rect(WIDTH // 2 + 18, 526, 160, 48)
+        self.result_buttons["retry"] = pygame.Rect(WIDTH // 2 - 210, 514, 196, 48)
+        self.result_buttons["next"] = pygame.Rect(WIDTH // 2 + 14, 514, 196, 48)
         self.draw_action_button(self.result_buttons["retry"], "RETRY SECTOR", False)
         next_label = "REPLAY CAMPAIGN" if success and final_sector else "NEXT WORLD  >"
         self.draw_action_button(self.result_buttons["next"], next_label, True)
@@ -744,58 +868,104 @@ class GameApp:
                 a, b = self.state.stars[u], self.state.stars[v]
                 pygame.draw.line(replay, (255, 174, 83, 190), (int(a.x), int(a.y)), (int(b.x), int(b.y)), 5)
         screen.blit(replay, (0, 0))
-        label = SMALL.render("KRUSKAL GHOST  |  CYAN: optimal route  |  AMBER: alternate link", True, (205, 235, 250))
+        label_text = "TIMED PLAN GHOST" if self.state.has_timed_edges else "KRUSKAL GHOST"
+        label = SMALL.render(f"{label_text}  |  CYAN: optimal route  |  AMBER: alternate link", True, (205, 235, 250))
         card = label.get_rect(center=(WIDTH // 2, 88)).inflate(24, 12)
         glass_panel(screen, card, (5, 16, 34, 230), (73, 178, 220), 8)
         screen.blit(label, label.get_rect(center=card.center))
 
     def _draw_sky_notes(self):
+        """Show real star facts and a chart made from catalog sky positions."""
         veil = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
         veil.fill((1, 4, 15, 232))
         screen.blit(veil, (0, 0))
         note_box = pygame.Rect(95, 64, 910, 592)
         glass_panel(screen, note_box, (5, 15, 35, 252), (88, 184, 227), 20)
-        heading = TITLE.render("STAR & PATTERN FIELD GUIDE", True, (229, 246, 255))
+
+        pattern = PATTERNS[WORLD_PATTERN[self.state.world_id]]
+        heading = TITLE.render("STAR INFORMATION", True, (229, 246, 255))
         screen.blit(heading, heading.get_rect(center=(WIDTH // 2, 100)))
-        subheading = SMALL.render("REAL STAR NAMES • PUZZLE ROUTES ARE SCHEMATIC, NOT MEASURED SKY POSITIONS", True, (129, 175, 204))
-        screen.blit(subheading, subheading.get_rect(center=(WIDTH // 2, 124)))
-
         left_x, right_x = 125, 575
-        screen.blit(MEDIUM.render("STARS IN THIS SECTOR", True, (121, 204, 239)), (left_x, 154))
-        screen.blit(MEDIUM.render("REAL SKY PATTERN", True, (121, 204, 239)), (right_x, 154))
-        pygame.draw.line(screen, (36, 67, 91), (left_x, 180), (535, 180), 1)
-        pygame.draw.line(screen, (36, 67, 91), (right_x, 180), (975, 180), 1)
+        screen.blit(MEDIUM.render("STARS IN THIS SECTOR", True, (121, 204, 239)), (left_x, 145))
+        screen.blit(MEDIUM.render("ACTUAL SKY PATTERN", True, (121, 204, 239)), (right_x, 145))
+        pygame.draw.line(screen, (36, 67, 91), (left_x, 171), (535, 171), 1)
+        pygame.draw.line(screen, (36, 67, 91), (right_x, 171), (975, 171), 1)
 
-        role = {
-            "NORMAL": "Standard link node",
-            "POWER": "Halves link cost",
-        }
-        for i, star in enumerate(self.state.star_list):
-            y = 194 + i * 42
-            dot_color = self.hud._star_color(star.name, star.type)
-            pygame.draw.circle(screen, dot_color, (left_x + 7, y + 7), 4)
+        # Give each game star its real position in the named sky pattern.
+        row_gap = min(43, 365 / max(1, len(self.state.star_list)))
+        for index, star in enumerate(self.state.star_list):
+            y = round(185 + index * row_gap)
+            color = self.hud._star_color(star.name)
+            pygame.draw.circle(screen, color, (left_x + 7, y + 8), 5)
             name = self.hud.fit_text(star.name, FONT, 330)
-            screen.blit(FONT.render(name, True, (210, 228, 242)), (left_x + 20, y))
-            desc = role.get(star.type, "Star") + " • real object name; schematic game position"
-            desc = self.hud.fit_text(desc, SMALL, 390)
-            screen.blit(SMALL.render(desc, True, (133, 169, 194)), (left_x + 20, y + 18))
+            screen.blit(FONT.render(name, True, (218, 228, 238)), (left_x + 22, y - 1))
+            fact = pattern["facts"].get(star.name, f"A named star in {pattern['name']}")
+            fact = self.hud.fit_text(fact, SMALL, 390)
+            screen.blit(SMALL.render(fact, True, (145, 169, 190)), (left_x + 22, y + 19))
 
-        fact = REAL_SKY_NOTES.get(self.world_idx + 1, "These names refer to real sky objects. Astronomers plot them with measured coordinates; this puzzle rearranges them to teach network planning.")
-        wrapped = self.wrap_text(fact, FONT, 395)
-        for i, line in enumerate(wrapped):
-            screen.blit(FONT.render(line, True, (185, 211, 229)), (right_x, 196 + i * 25))
+        # Project J2000 right ascension and declination into a north-up sky chart.
+        chart = pygame.Rect(right_x + 10, 235, 380, 285)
+        chart_stars = pattern["stars"]
+        coordinates = list(chart_stars.values())
+        mean_dec = math.radians(sum(dec for _ra, dec in coordinates) / len(coordinates))
+        projected_x = {name: ra * 15 * math.cos(mean_dec) for name, (ra, _dec) in chart_stars.items()}
+        min_x, max_x = min(projected_x.values()), max(projected_x.values())
+        min_y = min(dec for _ra, dec in coordinates)
+        max_y = max(dec for _ra, dec in coordinates)
+        pad = 28
+        span_x = max(0.01, max_x - min_x)
+        span_y = max(0.01, max_y - min_y)
+        scale = min((chart.width - pad * 2) / span_x, (chart.height - pad * 2) / span_y)
+        center_x = (min_x + max_x) / 2
+        center_y = (min_y + max_y) / 2
 
-        expert_notes = [
-            "How pros map stars:",
-            "• Parallax gives distance from apparent annual shift.",
-            "• Spectra reveal temperature, chemistry and radial motion.",
-            "• Repeated brightness readings expose eclipses and variability.",
-            "Sources: IAU constellation guide • ESA Gaia • NASA Science",
-        ]
-        notes_y = max(350, 212 + len(wrapped) * 25 + 22)
-        for i, line in enumerate(expert_notes):
-            rendered = SMALL.render(line, True, (145, 189, 215) if i < 4 else (105, 150, 180))
-            screen.blit(rendered, (right_x, notes_y + i * 26))
+        def chart_point(name):
+            ra, dec = chart_stars[name]
+            # Star charts put east on the left, so right ascension runs backwards.
+            x = chart.centerx - (projected_x[name] - center_x) * scale
+            y = chart.centery - (dec - center_y) * scale
+            return round(x), round(y)
+
+        for first, second in pattern["lines"]:
+            if first in chart_stars and second in chart_stars:
+                pygame.draw.line(screen, (104, 137, 164), chart_point(first), chart_point(second), 2)
+
+        active_names = {star.name for star in self.state.star_list}
+        used_labels = []
+        for name in chart_stars:
+            point = chart_point(name)
+            active = name in active_names
+            dot_color = self.hud._star_color(name) if active else (111, 132, 151)
+            pygame.draw.circle(screen, (8, 16, 31), point, 8 if active else 6)
+            pygame.draw.circle(screen, dot_color, point, 5 if active else 3)
+
+            if not active:
+                continue
+            label = SMALL.render(name, True, (196, 210, 222))
+            candidates = [
+                label.get_rect(topleft=(point[0] + 8, point[1] - 8)),
+                label.get_rect(topright=(point[0] - 8, point[1] - 8)),
+                label.get_rect(midtop=(point[0], point[1] + 8)),
+                label.get_rect(midbottom=(point[0], point[1] - 8)),
+            ]
+            label_rect = next((candidate for candidate in candidates
+                               if chart.contains(candidate) and not any(candidate.colliderect(old) for old in used_labels)), None)
+            if label_rect:
+                used_labels.append(label_rect)
+                screen.blit(label, label_rect)
+
+        pattern_name = MEDIUM.render(pattern["name"], True, (220, 230, 239))
+        screen.blit(pattern_name, pattern_name.get_rect(center=(chart.centerx, 190)))
+        pattern_kind = self.hud.fit_text(pattern["kind"], SMALL, chart.width)
+        kind_image = SMALL.render(pattern_kind, True, (153, 177, 196))
+        screen.blit(kind_image, kind_image.get_rect(center=(chart.centerx, 210)))
+        description = self.hud.fit_text(pattern["description"], SMALL, chart.width)
+        desc_image = SMALL.render(description, True, (145, 169, 190))
+        screen.blit(desc_image, desc_image.get_rect(center=(chart.centerx, 545)))
+        chart_note = self.hud.fit_text("Real sky positions (J2000); puzzle board positions are schematic.", SMALL, chart.width)
+        note_image = SMALL.render(chart_note, True, (114, 143, 166))
+        screen.blit(note_image, note_image.get_rect(center=(chart.centerx, 566)))
+
         self.draw_action_button(pygame.Rect(WIDTH // 2 - 70, 602, 140, 38), "BACK", True)
 
     def _draw_mission_brief(self):
@@ -825,15 +995,17 @@ class GameApp:
         screen.blit(MEDIUM.render("OBJECTIVE & FIELD RULES", True, (121, 204, 239)), (220, objective_y))
         rules = [
             "Link all stars through listed corridors. Union-Find rejects any link that creates a cycle.",
-            "Spend carefully: the final network is rated against this sector's minimum-cost spanning tree.",
-            "POWER stars halve link cost. Energy comes from the shared sector reserve.",
-            "Choose Kruskal MST links consecutively for rising chimes; a wrong pick resets the streak.",
-            "Wormholes are free links active at launch and count as pre-connected stars.",
+            "Corridor weights are base energy costs. Stay within the sector reserve.",
         ]
+        if self.state.has_timed_edges:
+            rules.append("Every move advances the collapse timer: dashed amber links expire after countdown.")
+            rules.append("Essential links vs tempting shortcuts: plan your move sequence to preserve connectivity.")
+        else:
+            rules.append("Kruskal's algorithm finds the minimum-cost spanning tree; consecutive optimal picks build resonance.")
         for i, line in enumerate(rules):
-            y = objective_y + 27 + i * 22
+            y = objective_y + 27 + i * 18
             screen.blit(SMALL.render(self.hud.fit_text(line, SMALL, 680), True, (155, 190, 214)), (220, y))
-        self.draw_action_button(pygame.Rect(WIDTH // 2 - 84, 550, 168, 40), "RETURN TO SECTOR", True)
+        self.draw_action_button(pygame.Rect(WIDTH // 2 - 84, 566, 168, 40), "RETURN TO SECTOR", True)
 
     @staticmethod
     def wrap_text(text, font, max_width):
@@ -862,8 +1034,12 @@ class GameApp:
                     self.window_maximized = False
                 elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                     if self.show_intro:
-                        if self.play_button.collidepoint(event.pos):
+                        if self.show_intro_rules:
+                            self.show_intro_rules = False
+                        elif self.play_button.collidepoint(event.pos):
                             self.show_intro = False
+                        elif self.how_to_button.collidepoint(event.pos):
+                            self.show_intro_rules = True
                         continue
                     if self.sky_notes_open:
                         self.sky_notes_open = False
@@ -896,8 +1072,7 @@ class GameApp:
                         if button:
                             self.activate_button(button)
                         elif not self.state.is_completed and not self.state.is_failed:
-                            roster_height = min(290, 46 + len(self.state.star_list) * 20 + 66)
-                            blocked_panels = [pygame.Rect(18, 92, 136, roster_height), pygame.Rect(920, 92, 164, 520)]
+                            blocked_panels = [pygame.Rect(920, 92, 164, 520)]
                             if any(panel.collidepoint(event.pos) for panel in blocked_panels):
                                 continue
                             for star in self.state.star_list:
@@ -919,8 +1094,15 @@ class GameApp:
                     elif event.key == pygame.K_b and not self.show_intro:
                         self.activate_button("brief")
                     elif self.show_intro:
-                        if event.key in (pygame.K_RETURN, pygame.K_SPACE):
-                            self.show_intro = False
+                        if self.show_intro_rules:
+                            continue
+                        if event.key == pygame.K_TAB:
+                            self.intro_focus_how = not self.intro_focus_how
+                        elif event.key in (pygame.K_RETURN, pygame.K_SPACE):
+                            if self.intro_focus_how:
+                                self.show_intro_rules = True
+                            else:
+                                self.show_intro = False
                     elif self.state.is_completed or self.state.is_failed:
                         if event.key == pygame.K_r:
                             self.load_world(self.world_idx)
