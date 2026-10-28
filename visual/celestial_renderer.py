@@ -55,11 +55,9 @@ class CelestialRenderer:
         surface.blit(ring_surf, (cx - ox, cy - oy), special_flags=pygame.BLEND_ADD)
 
     @classmethod
-    def draw_star(cls, surface, star, is_selected, now_sec, font):
+    def draw_star(cls, surface, star, is_selected, now_sec, font, all_stars=None, edges=None, placed_labels=None):
         """Draw a compact, bright star with a restrained colored corona."""
         core_c, halo_c, _ = cls.STAR_STYLES.get(star.name, ((235, 247, 255), (91, 163, 236), False))
-        if star.type == "POWER":
-            core_c, halo_c = (151, 239, 255), (41, 166, 255)
         x, y = int(star.x), int(star.y)
         pulse = (math.sin(now_sec * 3.0 + star.id) + 1) * .5
 
@@ -96,17 +94,70 @@ class CelestialRenderer:
             pygame.draw.circle(surface, (52, 190, 255), (x, y), int(20 + pulse * 5), 2)
             pygame.draw.circle(surface, (105, 222, 255), (x, y), 29, 1)
 
-        # Dark label chip stays legible against both stars and nebula.
+        # Dark label chip with smart obstacle and corridor clearance
         lbl = font.render(star.name, True, (245, 245, 255))
-        label_x = x + 11
-        if label_x + lbl.get_width() + 12 > surface.get_width() - 185:
-            label_x = x - lbl.get_width() - 17
-        label_rect = pygame.Rect(label_x, y - 14, lbl.get_width() + 16, 28)
+        w, h = lbl.get_width() + 16, 28
+
+        label_rect = None
+        if all_stars and edges:
+            candidates = [
+                (x + 16, y - 14),           # right
+                (x - w - 16, y - 14),       # left
+                (x - w // 2, y - 36),       # top
+                (x - w // 2, y + 16),       # bottom
+                (x + 14, y - 32),           # top-right
+                (x - w - 14, y - 32),       # top-left
+                (x + 14, y + 14),           # bottom-right
+                (x - w - 14, y + 14),       # bottom-left
+            ]
+
+            inc_lines = []
+            for eu, ev, _ in edges:
+                if eu == star.id or ev == star.id:
+                    other_id = ev if eu == star.id else eu
+                    other = next((s for s in all_stars if s.id == other_id), None)
+                    if other:
+                        inc_lines.append(((x, y), (int(other.x), int(other.y))))
+
+            scored = []
+            surf_w, surf_h = surface.get_width(), surface.get_height()
+            for cx, cy in candidates:
+                r = pygame.Rect(cx, cy, w, h)
+                if r.left < 15 or r.right > surf_w - 185 or r.top < 85 or r.bottom > surf_h - 90:
+                    continue
+                if any(math.hypot(r.centerx - s.x, r.centery - s.y) < 26 for s in all_stars):
+                    continue
+                if placed_labels and any(r.colliderect(old.inflate(4, 4)) for old in placed_labels):
+                    continue
+
+                cross_penalty = sum(1000 for p1, p2 in inc_lines if r.clipline(p1, p2))
+                angle_to_lbl = math.atan2(r.centery - y, r.centerx - x)
+                min_diff = math.pi
+                for p1, p2 in inc_lines:
+                    diff = abs((angle_to_lbl - math.atan2(p2[1] - y, p2[0] - x) + math.pi) % (2 * math.pi) - math.pi)
+                    if diff < min_diff:
+                        min_diff = diff
+
+                score = cross_penalty - min_diff * 40
+                scored.append((score, r))
+
+            if scored:
+                scored.sort(key=lambda item: item[0])
+                label_rect = scored[0][1]
+
+        if label_rect is None:
+            label_x = x + 11
+            if label_x + w > surface.get_width() - 185:
+                label_x = x - w - 17
+            label_rect = pygame.Rect(label_x, y - 14, w, h)
+
         chip = pygame.Surface(label_rect.size, pygame.SRCALPHA)
-        pygame.draw.rect(chip, (4, 9, 23, 205), chip.get_rect(), border_radius=7)
-        pygame.draw.rect(chip, (*halo_c, 100), chip.get_rect(), 1, border_radius=7)
+        pygame.draw.rect(chip, (4, 9, 23, 215), chip.get_rect(), border_radius=7)
+        pygame.draw.rect(chip, (*halo_c, 110), chip.get_rect(), 1, border_radius=7)
         surface.blit(chip, label_rect.topleft)
         surface.blit(lbl, (label_rect.x + 8, label_rect.y + 4))
+
+        return [label_rect]
 
     @staticmethod
     def draw_laser_corridor(surface, p1, p2, cost, font, is_selected=False, is_cycle=False):
