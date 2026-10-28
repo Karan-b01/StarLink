@@ -1,0 +1,81 @@
+{
+  "world_id": 11,
+  "name": "Greedy Trap - Orion's Frame",
+  "difficulty": "MEDIUM",
+  "story": "Orion frame contains deceptive paths. Prioritize essential corridors before the timer expires.",
+  "energy_budget": 12,
+  "stars": [
+    {
+      "id": 0,
+      "name": "Betelgeuse",
+      "x": 230,
+      "y": 300
+    },
+    {
+      "id": 1,
+      "name": "Bellatrix",
+      "x": 460,
+      "y": 300
+    },
+    {
+      "id": 2,
+      "name": "Saiph",
+      "x": 260,
+      "y": 500
+    },
+    {
+      "id": 3,
+      "name": "Rigel",
+      "x": 670,
+      "y": 500
+    }
+  ],
+  "edges": [
+    [
+      0,
+      1,
+      8
+    ],
+    [
+      0,
+      2,
+      2
+    ],
+    [
+      2,
+      1,
+      2
+    ],
+    [
+      2,
+      3,
+      2
+    ],
+    [
+      1,
+      3,
+      3
+    ],
+    [
+      0,
+      3,
+      10
+    ]
+  ],
+  "edge_rules": [
+    {
+      "edge": [
+        2,
+        3
+      ],
+      "collapse_after": 2
+    },
+    {
+      "edge": [
+        0,
+        2
+      ],
+      "collapse_after": 3
+    }
+  ]
+}
