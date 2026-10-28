@@ -21,7 +21,6 @@ class UIHud:
         self.width = width
         self.height = height
 
-        self.font_logo = pygame.font.SysFont("Segoe UI", 22, bold=True)
         self.font_sub = pygame.font.SysFont("Segoe UI", 12)
         self.font_section = pygame.font.SysFont("Segoe UI", 15, bold=True)
         self.font_body = pygame.font.SysFont("Segoe UI", 14)
@@ -31,61 +30,48 @@ class UIHud:
         self.btn_undo = pygame.Rect(752, 18, 54, 38)
         self.btn_redo = pygame.Rect(812, 18, 54, 38)
         self.btn_settings = pygame.Rect(872, 18, 60, 38)   # RESET
-        self.btn_maximize = pygame.Rect(988, 18, 44, 38)
+        self.btn_maximize = pygame.Rect(938, 18, 44, 38)
 
         # Bottom Bar Navigation Buttons (matching reference image)
-        self.btn_brief = pygame.Rect(18, height - 58, 240, 42)
-        self.btn_worlds = pygame.Rect(276, height - 54, 96, 38)
-        self.btn_algo = pygame.Rect(380, height - 54, 98, 38)
-        self.btn_hint = pygame.Rect(486, height - 54, 104, 38)
-        self.btn_next = pygame.Rect(598, height - 54, 126, 38)
-        self.btn_sky_info = pygame.Rect(732, height - 54, 110, 38)
+        self.btn_worlds = pygame.Rect(259, height - 54, 96, 38)
+        self.btn_algo = pygame.Rect(367, height - 54, 98, 38)
+        self.btn_hint = pygame.Rect(477, height - 54, 104, 38)
+        self.btn_next = pygame.Rect(593, height - 54, 126, 38)
+        self.btn_sky_info = pygame.Rect(731, height - 54, 110, 38)
 
         # Worlds Selection Drawer
         self.show_worlds_drawer = False
         self.drawer_progress = 0.0
         self.world_option_rects = [
-            pygame.Rect(343 + (index // 5) * 214, height - 255 + (index % 5) * 36, 204, 30)
-            for index in range(10)
+            pygame.Rect(343 + (index // 7) * 214, height - 320 + (index % 7) * 34, 204, 30)
+            for index in range(13)
         ]
 
     def draw_top_bar(self, surface, state, display_energy=None):
-        # 1. StarLink Logo Capsule
-        GlassPanel.draw(surface, (18, 16, 175, 52), border_color=(45, 110, 180), border_radius=14)
-        cx, cy = 42, 42
-        pulse = .5 + .5 * pygame.math.Vector2(1, 0).rotate(pygame.time.get_ticks() * .12).y
-        pygame.draw.circle(surface, (20, 104, 173), (cx, cy), 18)
-        pygame.draw.circle(surface, (50, 192, 248), (cx, cy), 14 + int(pulse * 2), 1)
-        logo_points = [(cx - 9, cy + 4), (cx - 2, cy - 8), (cx + 9, cy - 3), (cx + 5, cy + 9)]
-        for a, b in [(0, 1), (1, 2), (2, 3), (3, 0)]:
-            pygame.draw.line(surface, (144, 229, 255), logo_points[a], logo_points[b], 1)
-        for point in logo_points:
-            pygame.draw.circle(surface, (233, 249, 255), point, 2)
-        surface.blit(self.font_logo.render("StarLink", True, (240, 248, 255)), (66, 22))
-        surface.blit(self.font_sub.render("CONSTELLATION PUZZLE", True, (115, 180, 220)), (68, 47))
-
-        # 2. Sector Mission Capsule
-        GlassPanel.draw(surface, (202, 16, 260, 52), border_color=(45, 110, 180), border_radius=14)
+        # Start the sector and energy panels at the left edge after removing the logo capsule.
+        GlassPanel.draw(surface, (18, 16, 260, 52), border_color=(45, 110, 180), border_radius=14)
         world_title = state.name.split(" - ")[-1].upper()
         if len(world_title) > 22:
             world_title = world_title[:19] + "..."
         sector_caption = f"ACTIVE SECTOR  (SECTOR {state.world_id:02} / {state.difficulty})"
-        surface.blit(self.font_sub.render(sector_caption, True, (120, 180, 220)), (218, 20))
+        surface.blit(self.font_sub.render(sector_caption, True, (120, 180, 220)), (34, 20))
         # Glowing yellow/amber status orb matching reference
-        pygame.draw.circle(surface, (255, 200, 80), (225, 47), 5)
-        pygame.draw.circle(surface, (255, 240, 180), (225, 47), 2)
-        surface.blit(self.font_section.render(world_title, True, (235, 245, 255)), (237, 37))
+        pygame.draw.circle(surface, (255, 200, 80), (41, 47), 5)
+        pygame.draw.circle(surface, (255, 240, 180), (41, 47), 2)
+        surface.blit(self.font_section.render(world_title, True, (235, 245, 255)), (53, 37))
 
-        # 3. Energy Bar Capsule
-        GlassPanel.draw(surface, (470, 16, 262, 52), border_color=(45, 120, 200), border_radius=14)
+        # Energy bar uses the open space left by the removed logo.
+        GlassPanel.draw(surface, (290, 16, 442, 52), border_color=(45, 120, 200), border_radius=14)
         # Cyan Lightning Bolt
-        pygame.draw.polygon(surface, (60, 215, 255), [(488, 23), (480, 39), (487, 39), (483, 55), (497, 35), (490, 35)])
+        pygame.draw.polygon(surface, (60, 215, 255), [(308, 23), (300, 39), (307, 39), (303, 55), (317, 35), (310, 35)])
         disp_e = state.energy if display_energy is None else display_energy
         e_text = f"ENERGY  {int(disp_e)} / {state.max_energy}"
-        surface.blit(self.font_section.render(e_text, True, (230, 245, 255)), (504, 20))
+        surface.blit(self.font_section.render(e_text, True, (230, 245, 255)), (324, 20))
+        move_text = self.font_sub.render(f"MOVES  {state.moves_made}", True, (165, 195, 218))
+        surface.blit(move_text, (620, 22))
 
         # Energy Glowing Gradient Bar (Cyan -> Purple with leading spark)
-        bar_x, bar_y, bar_w, bar_h = 504, 43, 215, 12
+        bar_x, bar_y, bar_w, bar_h = 324, 43, 390, 12
         pygame.draw.rect(surface, (10, 20, 35), (bar_x, bar_y, bar_w, bar_h), border_radius=6)
         pct = max(0.0, min(1.0, disp_e / state.max_energy if state.max_energy > 0 else 0))
         if pct > 0:
@@ -116,35 +102,6 @@ class UIHud:
             txt = self.font_sub.render(label, True, (240, 248, 255) if hover else (190, 220, 245))
             surface.blit(txt, txt.get_rect(center=rect.center))
 
-    def draw_left_stars_panel(self, surface, stars):
-        """Draws the star roster panel on the left."""
-        roster_height = min(290, 46 + len(stars) * 20 + 66)
-        GlassPanel.draw(surface, (18, 92, 136, roster_height))
-        surface.blit(self.font_section.render("STAR ROSTER", True, (121, 204, 239)), (30, 103))
-        pygame.draw.line(surface, (36, 67, 91), (30, 126), (142, 126), 1)
-
-        y = 132
-        for s in stars:
-            color = self._star_color(s.name, s.type)
-            glow_color = tuple(channel // 4 for channel in color)
-            pygame.draw.circle(surface, glow_color, (38, y + 5), 7)
-            pygame.draw.circle(surface, color, (38, y + 5), 4)
-            pygame.draw.circle(surface, (235, 248, 255), (38, y + 5), 1)
-            label = self.fit_text(s.name.upper(), self.font_body, 98)
-            surface.blit(self.font_body.render(label, True, (204, 222, 239)), (51, y - 2))
-            y += 20
-
-        y += 3
-        pygame.draw.line(surface, (36, 67, 91), (30, y), (142, y), 1)
-        legend = [
-            ("POWER: half cost", (85, 207, 255)),
-            ("WORMHOLE: free link", (89, 232, 183)),
-            ("RESONANCE: MST streak", (255, 196, 105)),
-        ]
-        for label, color in legend:
-            surface.blit(self.font_sub.render(self.fit_text(label, self.font_sub, 112), True, color), (30, y + 5))
-            y += 15
-
     @staticmethod
     def fit_text(text, font, max_width):
         """Ellipsize labels to their actual pixel width, not an arbitrary character count."""
@@ -156,41 +113,54 @@ class UIHud:
         return text + suffix
 
     @staticmethod
-    def _star_color(name, star_type="NORMAL"):
+    def _star_color(name):
         named = {
             "Sol": (255, 190, 77), "Sirius": (89, 195, 255),
             "Vega": (207, 229, 255), "Rigel": (157, 119, 255),
             "Betelgeuse": (255, 111, 85),
         }
-        type_colors = {
-            "POWER": (85, 207, 255), "NORMAL": (173, 206, 246),
-        }
-        return named.get(name, type_colors.get(star_type, (109, 208, 246)))
+        return named.get(name, (173, 206, 246))
 
     def draw_kruskal_inspector(self, surface, state):
-        """Draws the live Kruskal's algorithm list on the right side."""
+        """Show corridors in Kruskal's increasing-cost order."""
         panel_rect = (920, 92, 164, 332)
         GlassPanel.draw(surface, panel_rect, border_color=(45, 95, 175))
 
-        surface.blit(self.font_section.render("KRUSKAL", True, (121, 204, 239)), (932, 104))
-        surface.blit(self.font_sub.render("EDGES  /  LOWEST WEIGHT", True, (115, 153, 183)), (932, 125))
+        title = "TIMED PLAN" if state.has_timed_edges else "KRUSKAL"
+        subtitle = "SAFE MOVE ORDER" if state.has_timed_edges else "EDGES / LOWEST WEIGHT"
+        surface.blit(self.font_section.render(title, True, (121, 204, 239)), (932, 104))
+        surface.blit(self.font_sub.render(subtitle, True, (115, 153, 183)), (932, 125))
         streak = self.font_sub.render(f"RESONANCE  x{state.resonance_streak}", True,
                                       (94, 232, 208) if state.resonance_streak else (115, 153, 183))
         surface.blit(streak, (932, 142))
         pygame.draw.line(surface, (36, 67, 91), (932, 158), (1072, 158), 1)
 
-        sorted_edges = sorted(
-            state.edges,
-            key=lambda edge: state.compute_edge_cost(edge[0], edge[1], edge[2]),
-        )
+        if state.has_timed_edges:
+            plan = state.get_current_plan() or state.optimal_plan
+            sorted_edges = [state.edges[index] for index in plan]
+        else:
+            sorted_edges = sorted(state.edges, key=lambda edge: edge[2])
         y = 163
         for idx, (u, v, w) in enumerate(sorted_edges[:6]):
             u_name = state.stars[u].name
             v_name = state.stars[v].name
-            display_weight = state.compute_edge_cost(u, v, w)
+            display_weight = w
 
-            is_picked = any(e[0] == min(u, v) and e[1] == max(u, v) for e in state.selected_edges)
-            txt_color = (94, 232, 208) if is_picked else (177, 199, 220)
+            pair = (min(u, v), max(u, v))
+            is_picked = any(e[0] == pair[0] and e[1] == pair[1] for e in state.selected_edges)
+            edge_idx = state.edge_index.get(pair)
+            deadline = state.edge_rules.get(edge_idx) if edge_idx is not None else None
+            is_unstable = (deadline is not None) and not is_picked
+            moves_left = max(0, deadline - state.turns_elapsed) if deadline is not None else 0
+
+            if is_picked:
+                txt_color = (94, 232, 208)
+            elif is_unstable and moves_left <= 1:
+                txt_color = (255, 115, 95)
+            elif is_unstable:
+                txt_color = (255, 205, 110)
+            else:
+                txt_color = (177, 199, 220)
 
             # Numbered pill badge
             pygame.draw.circle(surface, (59, 123, 159) if is_picked else (26, 42, 64), (940, y + 8), 9)
@@ -199,12 +169,22 @@ class UIHud:
 
             # Weight & Edge Name
             surface.blit(self.font_body.render(f"{display_weight}", True, (89, 195, 235)), (955, y))
-            line_str = self.fit_text(f"{u_name}-{v_name}", self.font_sub, 92)
+            display_str = f"{u_name}-{v_name}"
+            if is_unstable:
+                display_str += f" [{moves_left}m]"
+            line_str = self.fit_text(display_str, self.font_sub, 92)
             edge_label = self.font_sub.render(line_str, True, txt_color)
             surface.blit(edge_label, (972, y + 1))
 
             # Vertical indicator status tag on right edge
-            tag_color = (70, 235, 150) if is_picked else (40, 70, 95)
+            if is_picked:
+                tag_color = (70, 235, 150)
+            elif is_unstable and moves_left <= 1:
+                tag_color = (255, 80, 70)
+            elif is_unstable:
+                tag_color = (245, 180, 60)
+            else:
+                tag_color = (40, 70, 95)
             pygame.draw.rect(surface, tag_color, (1072, y + 2, 4, 15), border_radius=2)
 
             y += 21
@@ -221,32 +201,13 @@ class UIHud:
         for u, v, w in visible_links:
             u_name = state.stars[u].name
             v_name = state.stars[v].name
-            is_free = (u, v) in state.wormhole_pairs
-            link_label = self.fit_text(f"{'FREE' if is_free else str(w)}  {u_name} - {v_name}", self.font_sub, 140)
+            link_label = self.fit_text(f"{w}  {u_name} - {v_name}", self.font_sub, 140)
             surface.blit(self.font_sub.render(link_label, True, (116, 224, 197)), (932, sel_y))
             sel_y += 17
 
     def draw_bottom_dock(self, surface, state, is_maximized=False):
-        """Draws the bottom status capsule and action buttons."""
+        """Draws the centered bottom action buttons."""
         mouse_pos = pygame.mouse.get_pos()
-        brief_hover = self.btn_brief.collidepoint(mouse_pos)
-        GlassPanel.draw(surface, self.btn_brief, border_color=(80, 190, 250) if brief_hover else (45, 110, 180), glow=brief_hover)
-
-        # Planet horizon / galaxy slice emblem
-        bx, by = self.btn_brief.x + 22, self.btn_brief.centery
-        pygame.draw.circle(surface, (15, 35, 75), (bx, by), 15)
-        pygame.draw.circle(surface, (45, 120, 210), (bx, by), 15, 1)
-        pygame.draw.arc(surface, (120, 220, 255), (bx - 14, by - 14, 28, 28), 0.2, 2.9, 2)
-        pygame.draw.circle(surface, (230, 245, 255), (bx + 4, by - 5), 2)
-
-        # Brief text
-        surface.blit(self.font_sub.render("MISSION BRIEF", True, (120, 205, 245)), (self.btn_brief.x + 44, self.btn_brief.y + 4))
-        title = state.name if len(state.name) < 22 else state.name[:19] + "..."
-        surface.blit(self.font_body.render(title, True, (230, 245, 255)), (self.btn_brief.x + 44, self.btn_brief.y + 19))
-        info_color = (170, 230, 255) if brief_hover else (110, 170, 210)
-        info_mark = self.font_sub.render("OPEN ›", True, info_color)
-        surface.blit(info_mark, (self.btn_brief.right - 46, self.btn_brief.centery - 6))
-
         # Worlds Button (Pill shape)
         hover_w = self.btn_worlds.collidepoint(mouse_pos)
         w_bg = (25, 52, 85) if hover_w else (12, 24, 42)
@@ -291,23 +252,27 @@ class UIHud:
         self.drawer_progress = min(1.0, self.drawer_progress + 0.12) if self.show_worlds_drawer else max(0.0, self.drawer_progress - 0.16)
         if self.show_worlds_drawer:
             progress = self.drawer_progress
-            drawer_rect = pygame.Rect(330, self.height - 265 + int((1 - progress) * 90), 432, 205)
+            drawer_rect = pygame.Rect(330, self.height - 330 + int((1 - progress) * 90), 432, 270)
             GlassPanel.draw(surface, drawer_rect, border_color=(60, 130, 230), bg_color=(12, 18, 38, 245), border_radius=8)
             world_names = [
-                "01  Alpha Centauri  /  EASY",
-                "02  Star Nursery  /  EASY",
-                "03  Event Horizon  /  MEDIUM",
-                "04  Seven Sisters  /  MEDIUM",
-                "05  Great Spiral  /  HARD",
-                "06  Lyra Relay  /  EASY",
-                "07  Draco Nebula  /  EASY",
-                "08  Carina Keel  /  MEDIUM",
-                "09  Perseus Cluster  /  MEDIUM",
-                "10  Sagittarius Core  /  HARD",
+                "01  Big Dipper  /  EASY",
+                "02  Orion  /  EASY",
+                "03  Cygnus  /  MEDIUM",
+                "04  Pleiades  /  MEDIUM",
+                "05  Andromeda  /  HARD",
+                "06  Summer Triangle  /  EASY",
+                "07  Draco  /  EASY",
+                "08  Carina  /  MEDIUM",
+                "09  Perseus  /  MEDIUM",
+                "10  Sagittarius  /  HARD",
+                "11  Orion's Frame  /  MEDIUM",
+                "12  Seven Sisters  /  HARD",
+                "13  Northern Cross  /  HARD",
             ]
             for idx, r in enumerate(self.world_option_rects):
-                base_y = self.height - 255 + (idx % 5) * 36
-                entry_progress = max(0.0, min(1.0, progress * 1.7 - (idx % 5) * .09))
+                row = idx % 7
+                base_y = self.height - 320 + row * 34
+                entry_progress = max(0.0, min(1.0, progress * 1.7 - row * .06))
                 y_offset = int((1 - entry_progress) * 22)
                 r.y = base_y + int((1 - progress) * 90) + y_offset
                 h = r.collidepoint(mouse_pos)
