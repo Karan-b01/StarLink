@@ -23,12 +23,14 @@ class GameState:
         self.history = ActionHistory()
         self.resonance_streak = 0
         
-        # Precompute Kruskal's MST baseline
+        # DSA: Kruskal's algorithm finds the minimum spanning tree used for scoring.
         vertex_ids = list(self.stars.keys())
-        effective_edges = [(u, v, 0) for u, v in self.wormhole_pairs] + [
-            (u, v, self.compute_edge_cost(u, v, weight))
-            for u, v, weight in self.edges
-        ]
+        effective_edges = []
+        for u, v in self.wormhole_pairs:
+            effective_edges.append((u, v, 0))
+        for u, v, base_cost in self.edges:
+            cost = self.compute_edge_cost(u, v, base_cost)
+            effective_edges.append((u, v, cost))
         self.mst_edges, self.optimal_cost, self.solver_history = kruskal_mst(vertex_ids, effective_edges)
         self.mst_pairs = {(min(u, v), max(u, v)) for u, v, _ in self.mst_edges}
         
@@ -67,7 +69,7 @@ class GameState:
         base_cost = edge_entry[2]
         effective_cost = self.compute_edge_cost(u, v, base_cost)
 
-        # 4. Check Union-Find for cycles
+        # DSA: rebuild Union-Find from the player's links, then test this new link.
         uf = UnionFind(list(self.stars.keys()))
         for su, sv, _ in self.selected_edges:
             uf.union(su, sv)
@@ -125,7 +127,7 @@ class GameState:
         return False
 
     def _check_victory(self):
-        """Uses BFS to check if the full graph is spanning and connected."""
+        """DSA: BFS checks whether the selected links reach every star."""
         vertex_ids = list(self.stars.keys())
         if is_fully_connected(vertex_ids, self.selected_edges):
             self.is_completed = True
@@ -150,6 +152,7 @@ class GameState:
             )
 
     def undo(self):
+        # DSA: pop the latest move from the undo stack and restore its energy.
         action = self.history.undo()
         if action:
             edge = action["edge"]
@@ -160,6 +163,7 @@ class GameState:
             self.is_completed = False
 
     def redo(self):
+        # DSA: pop the latest undone move from the redo stack and apply it again.
         action = self.history.redo()
         if action:
             edge = action["edge"]
