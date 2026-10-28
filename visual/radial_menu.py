@@ -90,7 +90,7 @@ class AstrolabeRadialMenu:
                 "label": "Star Info",
                 "hotkey": "[I]",
                 "angle": 3 * math.pi / 4, # South-West (135°)
-                "desc": "Star Notes · Special star mechanics and sector nodes",
+                "desc": "Star Notes · Kruskal rules and sector nodes",
                 "action": "sky_info",
                 "key_code": pygame.K_i,
             },
