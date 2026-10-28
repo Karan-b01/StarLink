@@ -1,23 +1,166 @@
 {
   "world_id": 5,
-  "name": "Andromeda Core - The Great Spiral",
+  "name": "Andromeda - Chained Maiden",
   "difficulty": "HARD",
-  "story": "A free wormhole links two distant beacons. Use the shortcut wisely to restore the constellation with a minimum-cost network.",
-  "energy_budget": 27,
+  "story": "Andromeda gravitational tides are collapsing transmission conduits. Balance urgent links against tempting shortcuts.",
+  "energy_budget": 32,
   "stars": [
-    {"id": 0, "name": "Andromeda", "x": 160, "y": 310, "type": "NORMAL"},
-    {"id": 1, "name": "Mirach", "x": 330, "y": 180, "type": "POWER"},
-    {"id": 2, "name": "Alpheratz", "x": 560, "y": 155, "type": "NORMAL"},
-    {"id": 3, "name": "Almach", "x": 790, "y": 230, "type": "NORMAL"},
-    {"id": 4, "name": "Nembus", "x": 865, "y": 390, "type": "NORMAL"},
-    {"id": 5, "name": "Upsilon", "x": 680, "y": 510, "type": "NORMAL"},
-    {"id": 6, "name": "Delta", "x": 430, "y": 525, "type": "POWER"},
-    {"id": 7, "name": "Mu Andromedae", "x": 220, "y": 480, "type": "NORMAL"},
-    {"id": 8, "name": "M31 Core", "x": 500, "y": 340, "type": "NORMAL"}
+    {
+      "id": 0,
+      "name": "Alpheratz",
+      "x": 160,
+      "y": 310
+    },
+    {
+      "id": 1,
+      "name": "Mirach",
+      "x": 330,
+      "y": 180
+    },
+    {
+      "id": 2,
+      "name": "Almach",
+      "x": 560,
+      "y": 155
+    },
+    {
+      "id": 3,
+      "name": "Nembus",
+      "x": 790,
+      "y": 230
+    },
+    {
+      "id": 4,
+      "name": "Upsilon Andromedae",
+      "x": 865,
+      "y": 390
+    },
+    {
+      "id": 5,
+      "name": "Delta Andromedae",
+      "x": 680,
+      "y": 510
+    },
+    {
+      "id": 6,
+      "name": "Mu Andromedae",
+      "x": 430,
+      "y": 525
+    },
+    {
+      "id": 7,
+      "name": "Adhil",
+      "x": 220,
+      "y": 480
+    },
+    {
+      "id": 8,
+      "name": "Pi Andromedae",
+      "x": 500,
+      "y": 340
+    }
   ],
   "edges": [
-    [0, 1, 4], [1, 2, 3], [2, 3, 6], [3, 4, 4], [4, 5, 5], [5, 6, 3], [6, 7, 5], [7, 0, 7],
-    [0, 8, 5], [1, 8, 2], [2, 8, 4], [3, 8, 5], [5, 8, 4], [6, 8, 3], [7, 8, 4], [2, 5, 7], [0, 6, 8]
+    [
+      0,
+      1,
+      4
+    ],
+    [
+      1,
+      2,
+      3
+    ],
+    [
+      2,
+      3,
+      6
+    ],
+    [
+      3,
+      4,
+      4
+    ],
+    [
+      4,
+      5,
+      5
+    ],
+    [
+      5,
+      6,
+      3
+    ],
+    [
+      6,
+      7,
+      5
+    ],
+    [
+      7,
+      0,
+      7
+    ],
+    [
+      0,
+      8,
+      5
+    ],
+    [
+      1,
+      8,
+      2
+    ],
+    [
+      2,
+      8,
+      4
+    ],
+    [
+      3,
+      8,
+      5
+    ],
+    [
+      5,
+      8,
+      4
+    ],
+    [
+      6,
+      8,
+      3
+    ],
+    [
+      7,
+      8,
+      4
+    ],
+    [
+      2,
+      5,
+      7
+    ],
+    [
+      0,
+      6,
+      8
+    ]
   ],
-  "wormhole_pairs": [[0, 4]]
+  "edge_rules": [
+    {
+      "edge": [
+        1,
+        8
+      ],
+      "collapse_after": 2
+    },
+    {
+      "edge": [
+        5,
+        6
+      ],
+      "collapse_after": 4
+    }
+  ]
 }
