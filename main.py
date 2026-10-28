@@ -69,10 +69,9 @@ class GameApp:
         self.starfield = ParallaxStarfield(WIDTH, HEIGHT)
         self.hud = UIHud(WIDTH, HEIGHT)
         self.sound = SoundEngine(enabled=True)
-        self.world_files = [
-            f"levels/world{i}.json"
-            for i in range(1, 11)
-        ]
+        self.world_files = []
+        for world_number in range(1, 11):
+            self.world_files.append(f"levels/world{world_number}.json")
         self.world_idx = 0
         self.buttons = {
             "undo": self.hud.btn_undo,
@@ -181,11 +180,16 @@ class GameApp:
             self.toast_timer = 3.0
 
     def trigger_kruskal_stepper(self):
-        effective_edges = [(u, v, 0) for u, v in self.state.wormhole_pairs] + [
-            (u, v, self.state.compute_edge_cost(u, v, weight))
-            for u, v, weight in self.state.edges
-        ]
-        self.stepper_gen = kruskal_steps(list(self.state.stars.keys()), effective_edges)
+        # DSA: preview Kruskal's greedy MST choices without changing the player's links.
+        effective_edges = []
+        for u, v in self.state.wormhole_pairs:
+            effective_edges.append((u, v, 0))
+        for u, v, base_cost in self.state.edges:
+            cost = self.state.compute_edge_cost(u, v, base_cost)
+            effective_edges.append((u, v, cost))
+
+        vertices = list(self.state.stars.keys())
+        self.stepper_gen = kruskal_steps(vertices, effective_edges)
         self.stepper_edges = []
         self.stepper_active = True
         self.stepper_timer = 0.0
