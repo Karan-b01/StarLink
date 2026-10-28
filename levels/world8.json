@@ -2,19 +2,133 @@
   "world_id": 8,
   "name": "Carina Keel - Nebula Crossing",
   "difficulty": "MEDIUM",
-  "story": "Dust clouds obscure the Carina routes. Reconnect the long-range beacons through the dark field.",
+  "story": "Navigating the Carina Keel requires traversing shifting nebula corridors before they close permanently.",
   "energy_budget": 31,
   "stars": [
-    {"id": 0, "name": "Canopus", "x": 175, "y": 330, "type": "NORMAL"},
-    {"id": 1, "name": "Miaplacidus", "x": 315, "y": 185, "type": "POWER"},
-    {"id": 2, "name": "Avior", "x": 535, "y": 160, "type": "NORMAL"},
-    {"id": 3, "name": "Aspidiske", "x": 770, "y": 220, "type": "NORMAL"},
-    {"id": 4, "name": "Tureis", "x": 850, "y": 405, "type": "NORMAL"},
-    {"id": 5, "name": "Theta Carinae", "x": 665, "y": 535, "type": "NORMAL"},
-    {"id": 6, "name": "Omega Carinae", "x": 385, "y": 500, "type": "NORMAL"}
+    {
+      "id": 0,
+      "name": "Canopus",
+      "x": 175,
+      "y": 330
+    },
+    {
+      "id": 1,
+      "name": "Miaplacidus",
+      "x": 315,
+      "y": 185
+    },
+    {
+      "id": 2,
+      "name": "Avior",
+      "x": 535,
+      "y": 160
+    },
+    {
+      "id": 3,
+      "name": "Aspidiske",
+      "x": 770,
+      "y": 220
+    },
+    {
+      "id": 4,
+      "name": "Tureis",
+      "x": 850,
+      "y": 405
+    },
+    {
+      "id": 5,
+      "name": "Theta Carinae",
+      "x": 665,
+      "y": 535
+    },
+    {
+      "id": 6,
+      "name": "Omega Carinae",
+      "x": 385,
+      "y": 500
+    }
   ],
   "edges": [
-    [0, 1, 4], [1, 2, 3], [2, 3, 6], [3, 4, 3], [4, 5, 5], [5, 6, 4], [6, 0, 5],
-    [0, 2, 7], [1, 6, 5], [2, 5, 6], [2, 6, 4], [3, 5, 5], [1, 5, 8]
+    [
+      0,
+      1,
+      4
+    ],
+    [
+      1,
+      2,
+      3
+    ],
+    [
+      2,
+      3,
+      6
+    ],
+    [
+      3,
+      4,
+      3
+    ],
+    [
+      4,
+      5,
+      5
+    ],
+    [
+      5,
+      6,
+      4
+    ],
+    [
+      6,
+      0,
+      5
+    ],
+    [
+      0,
+      2,
+      7
+    ],
+    [
+      1,
+      6,
+      5
+    ],
+    [
+      2,
+      5,
+      6
+    ],
+    [
+      2,
+      6,
+      4
+    ],
+    [
+      3,
+      5,
+      5
+    ],
+    [
+      1,
+      5,
+      8
+    ]
+  ],
+  "edge_rules": [
+    {
+      "edge": [
+        1,
+        2
+      ],
+      "collapse_after": 2
+    },
+    {
+      "edge": [
+        4,
+        5
+      ],
+      "collapse_after": 4
+    }
   ]
 }
