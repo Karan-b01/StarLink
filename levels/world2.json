@@ -2,26 +2,112 @@
   "world_id": 2,
   "name": "Orion Nebula - Star Nursery",
   "difficulty": "EASY",
-  "story": "A newborn constellation is forming inside the nebula. Connect each beacon before its energy reserve runs low.",
+  "story": "Dense nebular gases threaten corridor stability. Secure critical links before they fade.",
   "energy_budget": 27,
   "stars": [
-    {"id": 0, "name": "Alnitak", "x": 180, "y": 300, "type": "NORMAL"},
-    {"id": 1, "name": "Alnilam", "x": 390, "y": 180, "type": "POWER"},
-    {"id": 2, "name": "Mintaka", "x": 650, "y": 230, "type": "NORMAL"},
-    {"id": 3, "name": "Saiph", "x": 270, "y": 500, "type": "NORMAL"},
-    {"id": 4, "name": "Bellatrix", "x": 590, "y": 500, "type": "NORMAL"},
-    {"id": 5, "name": "Meissa", "x": 820, "y": 350, "type": "NORMAL"}
+    {
+      "id": 0,
+      "name": "Alnitak",
+      "x": 180,
+      "y": 300
+    },
+    {
+      "id": 1,
+      "name": "Alnilam",
+      "x": 390,
+      "y": 180
+    },
+    {
+      "id": 2,
+      "name": "Mintaka",
+      "x": 650,
+      "y": 230
+    },
+    {
+      "id": 3,
+      "name": "Saiph",
+      "x": 270,
+      "y": 500
+    },
+    {
+      "id": 4,
+      "name": "Bellatrix",
+      "x": 590,
+      "y": 500
+    },
+    {
+      "id": 5,
+      "name": "Meissa",
+      "x": 820,
+      "y": 350
+    }
   ],
   "edges": [
-    [0, 1, 4],
-    [1, 2, 5],
-    [0, 3, 5],
-    [1, 3, 3],
-    [1, 4, 6],
-    [2, 4, 5],
-    [2, 5, 4],
-    [4, 5, 3],
-    [3, 4, 4],
-    [0, 4, 8]
+    [
+      0,
+      1,
+      4
+    ],
+    [
+      1,
+      2,
+      5
+    ],
+    [
+      0,
+      3,
+      5
+    ],
+    [
+      1,
+      3,
+      3
+    ],
+    [
+      1,
+      4,
+      6
+    ],
+    [
+      2,
+      4,
+      5
+    ],
+    [
+      2,
+      5,
+      4
+    ],
+    [
+      4,
+      5,
+      3
+    ],
+    [
+      3,
+      4,
+      4
+    ],
+    [
+      0,
+      4,
+      8
+    ]
+  ],
+  "edge_rules": [
+    {
+      "edge": [
+        4,
+        5
+      ],
+      "collapse_after": 2
+    },
+    {
+      "edge": [
+        1,
+        3
+      ],
+      "collapse_after": 4
+    }
   ]
 }
